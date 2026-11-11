@@ -1,0 +1,24 @@
+# 1. build
+FROM oven/bun:1.4-alpine AS build
+WORKDIR /work
+COPY package.json bun.lock bunfig.toml ./
+COPY packages/ ./packages/
+COPY apps/server/package.json ./apps/server/
+COPY apps/web/package.json ./apps/web/
+RUN SKIP_INSTALL_GIT_HOOKS=1 bun ci
+COPY apps/server ./apps/server
+RUN bun run build:server
+
+# 2. runtime
+FROM alpine:3.23
+RUN apk add --no-cache libstdc++
+RUN mkdir /data
+WORKDIR /work
+ENV TZ=Asia/Shanghai \
+    DATABASE_URL="/data/pglite.data" \
+    CACHE_URL="/data/cache" \
+    FILE_PATH="/data/file"
+COPY --from=build /work/apps/server/dist ./
+EXPOSE 9528
+VOLUME /data
+ENTRYPOINT ["./app"]

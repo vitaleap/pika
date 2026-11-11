@@ -1,0 +1,16 @@
+name: Setup registry
+description: Configure bun registry via bunfig.toml from registry input
+
+inputs:
+  registry:
+    description: 'Custom bun registry URL. If empty, no change is made.'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Configure bun registry
+      if: inputs.registry != ''
+      shell: bash
+      run: node .github/actions/setup-registry/index.mjs "${{ inputs.registry }}"

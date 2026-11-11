@@ -1,0 +1,19 @@
+# 递归匹配任意层级的目录，否则仅匹配根层，子目录产物仍进构建上下文
+**/node_modules/
+**/dist/
+
+*.log
+.DS_Store
+
+.git/
+.gitea/
+.idea/
+.vscode/
+
+.pglite.data
+.pglite.data.lock
+.env
+.env.*
+
+.agents/
+.tmp/

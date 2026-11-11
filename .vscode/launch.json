@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "bun",
+      "request": "attach",
+      "name": "Debug",
+      // This value can be retrieved by using `bun --inspect`.
+      "url": "ws://localhost:6499/elysia",
+      "preLaunchTask": "dev-all",
+      "postDebugTask": "bun-dev-stop"
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Stop",
+      "preLaunchTask": "bun-dev-stop",
+      "program": ""
+    }
+  ]
+}

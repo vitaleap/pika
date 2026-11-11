@@ -1,0 +1,16 @@
+dist/
+node_modules/
+
+CHANGELOG.md
+
+.dockerignore
+bun.lock
+
+# server, for ide
+apps/server/drizzle/
+apps/server/.pglite.data/
+
+# web, for ide
+apps/web/src/api/apiDefinitions.ts
+apps/web/src/api/createApis.ts
+apps/web/src/api/globals.d.ts

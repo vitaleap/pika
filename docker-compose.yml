@@ -1,0 +1,40 @@
+# Usage:
+#   1. ⚠️ reset `your_jwt_secret`
+#   2. run `docker compose -f docker-compose.yml up --build`
+
+services:
+  pika:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.aio
+    image: pika-aio:latest
+    restart: unless-stopped
+    ports:
+      - 8080:80
+    volumes:
+      - pika_data:/data
+    environment:
+      - ADMIN_EMAIL=admin@example.com
+      - JWT_ISSUER=pika
+      - JWT_SECRET=your_jwt_secret # ⚠️ 修改 your_jwt_secret
+    logging: # 限制日志体量，避免长期运行吃满宿主机磁盘
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:80/api/health']
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  pika_data:
+
+  # Or use local driver
+  # pika_data:
+  #   driver: local
+  #   driver_opts:
+  #     device: /root/pika_volumes/pika_data
+  #     o: bind
+  #     type: none

@@ -1,0 +1,26 @@
+{
+  "name": "@pika/bun-plugins",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "pika-build": "./src/cli/build.ts"
+  },
+  "scripts": {
+    "check": "run-s check:*",
+    "check:type": "tsc --noEmit",
+    "check:format": "prettier --check .",
+    "lint": "run-s lint:*",
+    "lint:format": "prettier --write ."
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

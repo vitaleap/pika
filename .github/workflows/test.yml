@@ -1,0 +1,116 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  SKIP_INSTALL_GIT_HOOKS: 1
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Install dependencies
+        run: bun ci
+
+  check:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Check
+        run: bun run check
+
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Test
+        run: bun run test
+
+  pre-build:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Build
+        run: bun run build
+
+  commit-lint:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 10
+
+      - name: Setup bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Commit lint
+        run: bunx commitlint --to HEAD --verbose

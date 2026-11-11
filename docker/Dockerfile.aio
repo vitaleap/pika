@@ -1,0 +1,36 @@
+# 1. build
+FROM oven/bun:1.4-alpine AS build
+WORKDIR /work
+COPY package.json bun.lock bunfig.toml prettier.config.ts .prettierignore ./
+COPY packages/ ./packages/
+COPY apps/server/package.json ./apps/server/
+COPY apps/web/package.json ./apps/web/
+RUN SKIP_INSTALL_GIT_HOOKS=1 bun ci
+COPY apps/server ./apps/server
+COPY apps/web ./apps/web
+RUN bun run build
+
+# 2. runtime
+FROM nginx:1.31-alpine-slim
+ENV TZ=Asia/Shanghai
+# for server
+WORKDIR /work
+RUN mkdir /data
+RUN apk add --no-cache libstdc++
+VOLUME /data
+ENV DATABASE_URL="/data/pglite.data" \
+    CACHE_URL="/data/cache" \
+    FILE_PATH="/data/file"
+# for web
+ENV NGINX_ACCESS_LOG_ENABLED=0 \
+    PROXY_PASS=http://127.0.0.1:9528
+COPY ./docker/web.conf /etc/nginx/templates/default.conf.template
+COPY ./docker/entrypoint-web.sh /docker-entrypoint.d/00-entrypoint-web.sh
+COPY ./docker/entrypoint-aio.sh /work/entrypoint-aio.sh
+RUN chmod +x /docker-entrypoint.d/00-entrypoint-web.sh /work/entrypoint-aio.sh \
+    && touch /docker-entrypoint.d/01-nginx-env.envsh
+# copy dist
+COPY --from=build /work/apps/web/dist /html
+COPY --from=build /work/apps/server/dist /work
+# 由 entrypoint-aio.sh 同时监督 nginx 与后端（作为 PID 1 接收退出信号）
+ENTRYPOINT ["/work/entrypoint-aio.sh"]

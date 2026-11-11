@@ -1,0 +1,25 @@
+{
+  "common": {
+    "language": "Language",
+    "chinese": "中文",
+    "english": "English",
+    "automatic": "Automatic",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "requestError": {
+    "network": "Network request failed",
+    "serverUnavailable": "Service temporarily unavailable",
+    "tooManyRequests": "Too many requests, please try again later"
+  },
+  "pageTitle": {
+    "setting": "Setting",
+    "profile": "Profile",
+    "security": "Security",
+    "appearance": "Appearance",
+    "language": "Language & Time zone",
+    "systemConfig": "System settings",
+    "userManagement": "Users",
+    "loginLog": "Login logs"
+  }
+}

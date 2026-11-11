@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞
+    url: https://github.com/vitaleap/pika/security/advisories/new
+    about: 请勿公开报告安全问题，使用私有漏洞报告
+  - name: 使用与部署问题
+    url: https://github.com/vitaleap/pika/discussions
+    about: 提问、交流经验请前往 Discussions

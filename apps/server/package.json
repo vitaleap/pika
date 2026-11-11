@@ -1,0 +1,43 @@
+{
+  "name": "server",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "dev:inspect": "bun run --inspect=/elysia --hot --no-clear-screen src/index.ts",
+    "build": "pika-build",
+    "check": "run-s check:*",
+    "check:type": "tsc --noEmit",
+    "check:format": "prettier --check .",
+    "lint": "run-s lint:*",
+    "lint:format": "prettier --write .",
+    "db:gen": "bun drizzle-kit generate",
+    "db:kit": "bun drizzle-kit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@elysia/cors": "^2.0.0-rc.1",
+    "@elysia/openapi": "^2.0.0-rc.1",
+    "@pika/elysia-common": "workspace:*",
+    "@pika/elysia-hook": "workspace:*",
+    "@pika/elysia-openapi": "workspace:*",
+    "@pika/elysia-plugins": "workspace:*",
+    "@pika/rate-limit": "workspace:*",
+    "@pika/shared": "workspace:*",
+    "@seepine/cache": "^0.1.6",
+    "@seepine/captcha": "^0.1.6",
+    "dayjs": "^1.11.23",
+    "drizzle-orm": "^1.0.0-rc.4",
+    "elysia": "^2.0.0-rc.4",
+    "es-toolkit": "^1.51.0",
+    "exact-mirror": "^1.2.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@elysia/eden": "^2.0.0-rc.1",
+    "@pika/bun-plugins": "workspace:*",
+    "@types/bun": "latest",
+    "drizzle-kit": "^1.0.0-rc.4"
+  }
+}

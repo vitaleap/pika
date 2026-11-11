@@ -1,0 +1,67 @@
+name: Bug 报告
+description: 报告一个可复现的问题
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请先搜索已有 Issue，避免重复。
+
+        ⚠️ 安全漏洞请勿在此提交，参见 [SECURITY.md](https://github.com/vitaleap/pika/blob/main/SECURITY.md)。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清晰描述发生了什么
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 执行 `bun run dev`
+        2. 访问 ...
+        3. 点击 ...
+        4. 出现错误
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 报错日志或截图
+      description: 服务端日志、浏览器控制台报错或界面截图
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本或 commit
+      placeholder: v0.1.0 或 commit sha
+    validations:
+      required: true
+
+  - type: dropdown
+    id: env
+    attributes:
+      label: 运行环境
+      multiple: true
+      options:
+        - 本地开发（bun run dev）
+        - Docker（docker-compose.yml）
+        - Docker（docker-compose.prod.yml）
+        - 单文件可执行程序
+    validations:
+      required: true

@@ -1,0 +1,11 @@
+# Vitest
+__screenshots__/
+
+# Vite
+*.timestamp-*-*.mjs
+
+# Project
+.env.development
+auto-imports.d.ts
+components.d.ts
+typed-router.d.ts

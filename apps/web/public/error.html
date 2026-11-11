@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>出错了</title>
+    <!--
+      nginx 自定义错误页（docker/web.conf 中通过 error_page 指向本文件）。
+      纯静态、零依赖：即使前端产物损坏或后端不可用也能正常展示。
+      状态码由 nginx 以 ?code=xxx 传入，未传时展示兜底文案。
+    -->
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f8fa;
+        --card: #ffffff;
+        --text: #1f2225;
+        --muted: #6b7280;
+        --primary: #2080f0;
+        --on-primary: #ffffff;
+        --border: rgba(0, 0, 0, 0.08);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #18181c;
+          --card: #1f1f26;
+          --text: rgba(255, 255, 255, 0.88);
+          --muted: rgba(255, 255, 255, 0.52);
+          --primary: #70c0e8;
+          --on-primary: #101014;
+          --border: rgba(255, 255, 255, 0.1);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+          'Microsoft YaHei', sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      .card {
+        width: 100%;
+        max-width: 480px;
+        padding: 40px 32px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--card);
+        text-align: center;
+      }
+      .code {
+        margin: 0;
+        font-size: 64px;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: 2px;
+        color: var(--primary);
+      }
+      .title {
+        margin: 12px 0 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .desc {
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 28px;
+      }
+      .btn {
+        padding: 8px 20px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 14px;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+      }
+      .btn:hover {
+        opacity: 0.8;
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn.primary {
+        border-color: transparent;
+        background: var(--primary);
+        color: var(--on-primary);
+      }
+      @media (max-width: 480px) {
+        .card {
+          padding: 32px 20px;
+        }
+        .code {
+          font-size: 52px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <p class="code" id="code">错误</p>
+      <h1 class="title" id="title">请求处理失败</h1>
+      <p class="desc" id="desc">请稍后重试，或返回首页继续浏览。</p>
+      <div class="actions">
+        <a class="btn primary" href="/">返回首页</a>
+        <button class="btn" type="button" id="back">返回上一页</button>
+      </div>
+    </main>
+    <script>
+      // 文案与 code 对应关系，按需自行修改
+      var MESSAGES = {
+        zh: {
+          default: ['请求处理失败', '请稍后重试，或返回首页继续浏览。'],
+          400: ['请求无效', '请求参数有误，请检查后重试。'],
+          403: ['没有访问权限', '您没有权限访问该页面。'],
+          404: ['页面不存在', '您访问的页面已被移除或从未存在。'],
+          405: ['请求方法不被允许', '请通过正常入口访问该地址。'],
+          413: ['内容过大', '提交的内容超过了服务器允许的大小。'],
+          429: ['请求过于频繁', '操作太频繁了，请稍后再试。'],
+          500: ['服务器内部错误', '服务器处理请求时出现异常，请稍后重试。'],
+          502: ['服务暂时不可用', '服务正在重启或维护，请稍后重试。'],
+          503: ['服务暂时不可用', '服务正在重启或维护，请稍后重试。'],
+          504: ['服务响应超时', '服务处理请求超时，请稍后重试。'],
+        },
+        en: {
+          default: ['Something went wrong', 'Please try again later or go back home.'],
+          400: ['Bad request', 'The request is invalid. Please check and try again.'],
+          403: ['Forbidden', 'You do not have permission to access this page.'],
+          404: ['Page not found', 'The page has been removed or never existed.'],
+          405: ['Method not allowed', 'Please access this address through the normal entry.'],
+          413: ['Payload too large', 'The submitted content exceeds the server limit.'],
+          429: ['Too many requests', 'You are doing that too often. Please try again later.'],
+          500: ['Internal server error', 'The server failed to handle the request.'],
+          502: ['Service unavailable', 'The service is restarting or under maintenance.'],
+          503: ['Service unavailable', 'The service is restarting or under maintenance.'],
+          504: ['Gateway timeout', 'The service timed out handling the request.'],
+        },
+      }
+
+      var code = new URLSearchParams(location.search).get('code') || ''
+      var lang = (navigator.language || '').toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en'
+      var message = MESSAGES[lang][code] || MESSAGES[lang].default
+
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en'
+      document.title = code ? code + ' - ' + message[0] : message[0]
+      document.getElementById('code').textContent = code || '!'
+      document.getElementById('title').textContent = message[0]
+      document.getElementById('desc').textContent = message[1]
+
+      // 直接打开错误页（无上一页）时回到首页
+      document.getElementById('back').addEventListener('click', function () {
+        if (history.length > 1) {
+          history.back()
+        } else {
+          location.assign('/')
+        }
+      })
+    </script>
+  </body>
+</html>

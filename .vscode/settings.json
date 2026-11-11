@@ -1,0 +1,23 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.wordWrap": "on",
+  "editor.indentSize": 2,
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "package.json": ".npmrc, *.config.ts, bun.lock, bunfig.toml, tsconfig.json, .prettierignore, *.d.ts, .*.js",
+    ".gitignore": ".gitattributes",
+    ".env.example": ".env.*",
+    "AGENTS.md": "CLAUDE.md",
+    "README.md": "README.*.md, CHANGELOG.md, SECURITY.*, CONTRIBUTING.*, LICENSE",
+    "docker-compose.yml": "docker-compose.*.yml, .dockerignore"
+  },
+  "css.customData": [".vscode/css-directives.json"],
+  "vite.autoStart": false,
+  "unocss.autocomplete.matchType": "fuzzy",
+  "unocss.autocomplete.strict": true,
+  "unocss.root": "apps/web",
+  "unocss.include": "apps/web"
+}

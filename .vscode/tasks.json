@@ -1,0 +1,50 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev-all",
+      "dependsOn": ["web-dev", "server-dev"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "web-dev",
+      "type": "shell",
+      "command": "bun --cwd=apps/web run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*",
+          "endsPattern": "Local:"
+        }
+      }
+    },
+    {
+      "label": "server-dev",
+      "type": "shell",
+      "command": "bun --cwd=apps/server run dev:inspect",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*",
+          "endsPattern": "Bun Inspector"
+        }
+      }
+    },
+    {
+      "label": "bun-dev-stop",
+      "type": "shell",
+      "command": "bun .vscode/task-stop.ts",
+      "isBackground": false,
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@pika/rate-limit",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "run-s check:*",
+    "check:type": "tsc --noEmit",
+    "check:format": "prettier --check .",
+    "lint": "run-s lint:*",
+    "lint:format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.12.0"
+  }
+}

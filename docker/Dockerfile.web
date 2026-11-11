@@ -1,0 +1,20 @@
+# 1. build
+FROM oven/bun:1.4-alpine AS build
+WORKDIR /work
+COPY package.json bun.lock bunfig.toml prettier.config.ts .prettierignore ./
+COPY packages/ ./packages/
+COPY apps/server/package.json ./apps/server/
+COPY apps/web/package.json ./apps/web/
+RUN SKIP_INSTALL_GIT_HOOKS=1 bun ci
+COPY apps/web ./apps/web
+RUN bun run build:web
+
+# 2. runtime
+FROM nginx:1.31-alpine-slim
+ENV TZ=Asia/Shanghai
+
+COPY ./docker/entrypoint-web.sh /docker-entrypoint.d/00-entrypoint-web.sh
+RUN chmod +x /docker-entrypoint.d/00-entrypoint-web.sh && touch /docker-entrypoint.d/01-nginx-env.envsh
+
+COPY ./docker/web.conf /etc/nginx/templates/default.conf.template
+COPY --from=build /work/apps/web/dist /html

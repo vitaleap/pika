@@ -1,0 +1,57 @@
+# 校验部署配置
+name: Test Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker/**'
+      - '.github/workflows/test-deploy.yml'
+  pull_request:
+    paths:
+      - 'docker/**'
+      - '.github/workflows/test-deploy.yml'
+
+jobs:
+  test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Check env docs
+        run: |
+          # entrypoint-web.sh 中的 ${VAR:-default} 需与 docker/README.md 表格一致
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          sed -n 's/.*\${\([A-Z][A-Z0-9_]*\):-\([^}]*\)}.*/\1\t\2/p' docker/entrypoint-web.sh | sort -u > "$tmp"
+          total=0
+          failed=0
+          while IFS="$(printf '\t')" read -r name default; do
+            total=$((total + 1))
+            row=$(grep -F "\`$name\`" docker/README.md || true)
+            if [ -z "$row" ]; then
+              echo "missing in README: $name"
+              failed=$((failed + 1))
+              continue
+            fi
+            if [ -n "$default" ] && ! printf '%s' "$row" | grep -Fq "$default"; then
+              echo "default mismatch: $name (script=[$default])"
+              failed=$((failed + 1))
+            fi
+          done < "$tmp"
+          if [ "$failed" -gt 0 ]; then
+            echo "env docs check failed: $failed/$total"
+            exit 1
+          fi
+          echo "env docs check ok: $total"
+
+      - name: Check Shell
+        run: |
+          for f in docker/*.sh; do
+            sh -n "$f"
+            echo "shell check ok: $f"
+          done

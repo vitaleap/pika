@@ -1,0 +1,25 @@
+{
+  "common": {
+    "language": "语言",
+    "chinese": "中文",
+    "english": "English",
+    "automatic": "自动",
+    "light": "浅色",
+    "dark": "深色"
+  },
+  "requestError": {
+    "network": "网络请求异常",
+    "serverUnavailable": "服务器维护中",
+    "tooManyRequests": "请求过于频繁，请稍后再试"
+  },
+  "pageTitle": {
+    "setting": "设置",
+    "profile": "个人信息",
+    "security": "身份验证",
+    "appearance": "外观",
+    "language": "语言与时区",
+    "systemConfig": "系统配置",
+    "userManagement": "用户管理",
+    "loginLog": "登录日志"
+  }
+}

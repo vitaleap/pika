@@ -1,0 +1,27 @@
+name: Setup bun
+description: Cache and setup bun runtime for workflows
+
+runs:
+  using: composite
+  steps:
+    - name: Cache bun and dependencies
+      uses: actions/cache@v5
+      id: cache
+      with:
+        path: |
+          ~/.bun
+        key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24
+
+    - name: Setup bun
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: oven-sh/setup-bun@v2
+
+    - name: Set bun env
+      shell: bash
+      run: |
+        echo "BUN_INSTALL=$HOME/.bun" >> "$GITHUB_ENV"
+        echo "PATH=$HOME/.bun/bin:$PATH" >> "$GITHUB_ENV"

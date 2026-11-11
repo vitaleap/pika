@@ -1,0 +1,7 @@
+# for cli
+dist/
+node_modules/
+
+src/api/apiDefinitions.ts
+src/api/createApis.ts
+src/api/globals.d.ts

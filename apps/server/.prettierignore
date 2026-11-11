@@ -1,0 +1,7 @@
+# for cli
+dist/
+node_modules/
+
+drizzle/
+.pglite.data/
+.pglite.data.lock

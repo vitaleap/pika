@@ -1,0 +1,11 @@
+# pglite
+.pglite.data/
+.pglite.data.lock
+.test.data/
+
+# dev files
+.uploads/
+
+# cache
+.cache/
+.tmp/

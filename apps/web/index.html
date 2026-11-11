@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pika</title>
+    <link rel="icon" href="/favicon.ico" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <!--webApp-->
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-icon-precomposed" href="/images/logo-light.png" />
+    <style>
+      html,
+      body,
+      #app,
+      .app-loader-wrapper {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: var(--n-bg-color, #18181c);
+          color: rgba(255, 255, 255, 0.82);
+        }
+      }
+      .app-loader-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .app-loader {
+        width: 1.5rem;
+        aspect-ratio: 1;
+        display: grid;
+        border-radius: 50%;
+        background:
+          linear-gradient(0deg, rgb(100 100 100/50%) 30%, #0000 0 70%, rgb(100 100 100/100%) 0)
+            50%/8% 100%,
+          linear-gradient(90deg, rgb(100 100 100/25%) 30%, #0000 0 70%, rgb(100 100 100/75%) 0)
+            50%/100% 8%;
+        background-repeat: no-repeat;
+        animation: l23 1s infinite steps(12);
+      }
+      .app-loader::before,
+      .app-loader::after {
+        content: '';
+        grid-area: 1/1;
+        border-radius: 50%;
+        background: inherit;
+        opacity: 0.915;
+        transform: rotate(30deg);
+      }
+      .app-loader::after {
+        opacity: 0.83;
+        transform: rotate(60deg);
+      }
+      @keyframes l23 {
+        100% {
+          transform: rotate(1turn);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <strong>您的浏览器未开启或不支持JavaScript。</strong>
+      <br />
+      <strong>Your browser is not enabled or does not support JavaScript.</strong>
+    </noscript>
+    <div id="app">
+      <div class="app-loader-wrapper">
+        <div class="app-loader"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+  <script>
+    window.onload = function () {
+      var lastTouchEnd = 0
+      document.addEventListener('touchstart', function (event) {
+        if (event.touches.length > 1) {
+          event.preventDefault()
+        }
+      })
+      document.addEventListener(
+        'touchend',
+        function (event) {
+          var now = new Date().getTime()
+          if (now - lastTouchEnd <= 300) {
+            event.preventDefault()
+          }
+          lastTouchEnd = now
+        },
+        false,
+      )
+      document.addEventListener('gesturestart', function (event) {
+        event.preventDefault()
+      })
+      document.addEventListener('dblclick', function (event) {
+        event.preventDefault()
+      })
+    }
+  </script>
+</html>

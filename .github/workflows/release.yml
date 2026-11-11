@@ -1,0 +1,304 @@
+# 镜像仓库配置
+#   变量 DOCKER_REGISTRY,DOCKER_USERNAME
+#   密钥 DOCKER_PASSWORD
+
+# 推送 `v*` tag 触发：先建 draft release，产物全部上传完成后再公开。
+# 发版：bun run release && git push --follow-tags
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+  # 手动重跑：Branch/Tag 选要重发的 tag
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      # CHANGELOG 是全量历史，截取当前 tag 的段落，并补上完整变更链接
+      - name: Extract changelog
+        env:
+          TAG: ${{ github.ref_name }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          version="${TAG#v}"
+          awk -v v="$version" '
+            /^## / {
+              if (found) exit
+              # 兼容 `## 0.0.4` 与 commit-and-tag-version 的 `## [0.0.4](compare-url)`
+              if (index($0, "## [" v "]") == 1 || index($0, "## " v " ") == 1) {
+                found = 1
+                next
+              }
+            }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "CHANGELOG.md 中 $version 无内容，release notes 留空"
+          fi
+          # Gitea 没有 /blob/ 路由，文件页要用 /src/<ref>/<path>
+          if [[ "$SERVER_URL" == *github.com* ]]; then
+            changelog_url="${SERVER_URL}/${REPO}/blob/${TAG}/CHANGELOG.md"
+          else
+            changelog_url="${SERVER_URL}/${REPO}/src/tag/${TAG}/CHANGELOG.md"
+          fi
+          {
+            echo ''
+            echo "完整变更见 [CHANGELOG.md](${changelog_url})。"
+          } >> release-notes.md
+
+      # 追加下载表格, 资产名由 release-binaries 的 matrix 决定（name=${TARGET#bun-}），改动时需同步本步骤。
+      - name: Append download links
+        env:
+          TAG: ${{ github.ref_name }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          base="${SERVER_URL}/${REPO}/releases/download/${TAG}"
+          {
+            echo ''
+            echo '## 下载'
+            echo ''
+            echo '| 平台 | 架构 | 文件 | 下载 |'
+            echo '| --- | --- | --- | --- |'
+            echo "| Windows | x64 | pika-windows-x64.zip | [下载](${base}/pika-windows-x64.zip) |"
+            echo "| macOS | Intel | pika-darwin-x64.zip | [下载](${base}/pika-darwin-x64.zip) |"
+            echo "| macOS | Apple Silicon | pika-darwin-arm64.zip | [下载](${base}/pika-darwin-arm64.zip) |"
+            echo "| Linux | x64 | pika-linux-x64.tar.gz | [下载](${base}/pika-linux-x64.tar.gz) |"
+            echo "| Linux | arm64 | pika-linux-arm64.tar.gz | [下载](${base}/pika-linux-arm64.tar.gz) |"
+            echo ''
+            echo '解压后得到 `pika` 目录，内含可执行文件与 `.env` 示例，按需修改配置后直接运行。'
+            echo ''
+            echo '## macOS 安装提示'
+            echo '首次运行解压后的二进制时，若提示：'
+            echo ''
+            echo '> 「无法打开，因为 Apple 无法验证」或「已损坏，无法打开」'
+            echo ''
+            echo '请在终端执行以下命令后重新打开：'
+            echo '```bash'
+            echo 'chmod +x pika-darwin-arm64'
+            echo 'xattr -r -d com.apple.quarantine pika-darwin-arm64'
+            echo '```'
+          } >> release-notes.md
+
+      - name: Create or fetch draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: release-notes.md
+          draft: true
+          # -beta/-rc 标预发布
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+  release-docker-aio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ vars.DOCKER_REGISTRY != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Setup Docker
+        uses: seepine/action-setup-docker@v1
+        id: meta
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          context: .
+          file: docker/Dockerfile.aio
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-to: ${{ steps.meta.outputs.cache-to }}
+          cache-from: ${{ steps.meta.outputs.cache-from }}
+
+      - name: Success
+        run: echo "Release ${{ steps.meta.outputs.tags }} success"
+
+  release-docker-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ vars.DOCKER_REGISTRY != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Setup Docker
+        uses: seepine/action-setup-docker@v1
+        id: meta
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          context: .
+          file: docker/Dockerfile.server
+          tags: |
+            ${{ steps.meta.outputs.image }}-server:latest
+            ${{ steps.meta.outputs.image }}-server:${{ steps.meta.outputs.version }}
+          cache-to: ${{ steps.meta.outputs.cache-to }}
+          cache-from: ${{ steps.meta.outputs.cache-from }}
+
+      - name: Success
+        run: echo "Release ${{ steps.meta.outputs.image }}-server:${{ steps.meta.outputs.version }} success"
+
+  release-docker-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ vars.DOCKER_REGISTRY != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Setup Docker
+        uses: seepine/action-setup-docker@v1
+        id: meta
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          context: .
+          file: docker/Dockerfile.web
+          tags: |
+            ${{ steps.meta.outputs.image }}-web:latest
+            ${{ steps.meta.outputs.image }}-web:${{ steps.meta.outputs.version }}
+          cache-to: ${{ steps.meta.outputs.cache-to }}
+          cache-from: ${{ steps.meta.outputs.cache-from }}
+
+      - name: Success
+        run: echo "Release ${{ steps.meta.outputs.image }}-web:${{ steps.meta.outputs.version }} success"
+
+  release-binaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        target:
+          - bun-linux-x64
+          - bun-linux-arm64
+          - bun-windows-x64
+          - bun-darwin-x64
+          - bun-darwin-arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup registry
+        uses: ./.github/actions/setup-registry
+        with:
+          registry: ${{ vars.NPM_REGISTRY || '' }}
+
+      - name: Install dependencies
+        run: SKIP_INSTALL_GIT_HOOKS=1 bun ci
+
+      - name: Check
+        run: bun check
+
+      - name: Build web
+        run: bun run build:web
+
+      - name: Build server binary
+        run: bun run build:server --target=${{ matrix.target }} --name=pika --embed-web
+
+      - name: Bundle
+        run: |
+          rm -rf dist
+          mkdir -p dist/pika
+          cp -rp apps/server/dist/. dist/pika/
+          cp apps/server/.env.example dist/pika/.env
+          if [[ "${{ matrix.target }}" != *windows* ]]; then
+            chmod +x dist/pika/pika-*
+          fi
+
+      - name: Package binary
+        shell: bash
+        run: |
+          name="${TARGET#bun-}"
+          if [[ "$TARGET" == *linux* ]]; then
+            tar -czf "dist/pika-${name}.tar.gz" -C dist pika
+          else
+            (cd dist && zip -r "pika-${name}.zip" "pika")
+          fi
+        env:
+          TARGET: ${{ matrix.target }}
+
+      - name: Upload binary
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/pika-*.*
+          draft: true
+
+  publish-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: release-binaries
+    permissions:
+      contents: write
+    steps:
+      - name: Publish draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: false
