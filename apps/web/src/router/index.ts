@@ -58,6 +58,11 @@ declare module 'vue-router' {
      * @default true
      */
     authRequired?: boolean
+    /**
+     * 是否隐藏该路由，为 true 时不注册到路由表（其子路由同样不注册）
+     * @default false
+     */
+    hide?: boolean
   }
 }
 
