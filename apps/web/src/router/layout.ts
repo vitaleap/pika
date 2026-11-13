@@ -35,11 +35,23 @@ const getPathPrefix = (path: string): string => {
   }
   return arr[0]!
 }
+// 过滤掉 meta.hide 为 true 的路由，子路由一并移除
+const filterHiddenRoutes = (routes: readonly RouteRecordRaw[]): RouteRecordRaw[] =>
+  routes
+    .filter((route) => !route.meta?.hide)
+    .map((route) => {
+      if (!route.children) {
+        return route
+      }
+      return { ...route, children: filterHiddenRoutes(route.children) }
+    })
+
 export const setupLayouts = (routes: readonly RouteRecordRaw[]): readonly RouteRecordRaw[] => {
+  const visibleRoutes = filterHiddenRoutes(routes)
   // 处理路由，例如 pages/[dir]/index.vue，首节点为路径空路由，因此需要拼接
   // `/` 页面单独拎出来挂载，解决 layout 不生效的问题
-  const homeRoute = routes.find((route) => route.path === '/')
-  const newRoutes = routes.flatMap((route) => (route.path === '/' ? [] : resetRoute(route)))
+  const homeRoute = visibleRoutes.find((route) => route.path === '/')
+  const newRoutes = visibleRoutes.flatMap((route) => (route.path === '/' ? [] : resetRoute(route)))
 
   const layoutKeys = Object.keys(newLayouts)
   const layoutRoutes: RouteRecordRaw[] = [

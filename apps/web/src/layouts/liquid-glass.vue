@@ -21,18 +21,15 @@
       </template>
 
       <template #2>
-        <div class="h-full flex flex-col pl-2 py-2">
-          <g-layout-header></g-layout-header>
-          <div class="flex-1 min-h-0 overflow-y-auto py-2 pr-2">
-            <div class="mx-auto max-w-3xl">
-              <router-view v-slot="{ Component, route: viewRoute }">
-                <keep-alive :max="5">
-                  <component :is="Component" v-if="viewRoute.meta.keepAlive" />
-                </keep-alive>
-                <component :is="Component" v-if="!viewRoute.meta.keepAlive" />
-              </router-view>
-            </div>
-          </div>
+        <div class="h-full flex flex-col p-2">
+          <!-- 页面接管 header（hideHeader）时只渲染路由，header 与内容区由页面自行组合 -->
+          <layout-view v-if="hideHeader" />
+          <template v-else>
+            <g-layout-header></g-layout-header>
+            <g-layout-content>
+              <layout-view />
+            </g-layout-content>
+          </template>
         </div>
       </template>
     </w-split>
@@ -47,31 +44,27 @@
           <left-area></left-area>
         </div>
       </div>
-      <template v-else>
-        <div class="h-full flex flex-col p-2">
+      <div v-else class="h-full flex flex-col p-2">
+        <layout-view v-if="hideHeader" />
+        <template v-else>
           <g-layout-header></g-layout-header>
-          <div class="flex-1 min-h-0 overflow-y-auto pt-2">
-            <div>
-              <router-view v-slot="{ Component, route: viewRoute }">
-                <keep-alive :max="5">
-                  <component :is="Component" v-if="viewRoute.meta.keepAlive" />
-                </keep-alive>
-                <component :is="Component" v-if="!viewRoute.meta.keepAlive" />
-              </router-view>
-            </div>
-          </div>
-        </div>
-      </template>
+          <g-layout-content>
+            <layout-view />
+          </g-layout-content>
+        </template>
+      </div>
     </template>
   </div>
 </template>
 <script setup lang="ts">
 import LeftArea from './components/liquid-glass/left/index.vue'
+import LayoutView from './components/liquid-glass/view.vue'
 import { systemInfo } from '@/composables/system.ts'
 
 const themeStore = useThemeStore()
 const preferenceStore = usePreferenceStore()
 const route = useRoute()
+const hideHeader = computed(() => route.meta.hideHeader === true)
 // 玻璃层配色在整个 dashboard 布局内均生效；壁纸只在首页渲染，避免内容页被背景干扰
 const wallpaperStyle = computed(() => {
   const mode = themeStore.isDark ? 'dark' : 'light'

@@ -70,3 +70,10 @@ bun run build        # 构建
 
 - Naive UI 组件已通过 `unplugin-vue-components` 自动注册，直接使用即可。
 - 优先使用 NaivePlus 组件：例如对于按钮、表单等场景，优先使用 `np-button`、`np-form` 等组件以提升开发效率
+
+## 布局
+
+- 提供 `dashboard` layout，以供管理页面后台使用
+  - 提供 `c-layout-header` 用于自定义 header 部位
+- 提供 `liquid-glass` layout，以供普通用户页面使用
+  - 提供 `g-layout-header` 和 `g-layout-content` 组合，方便页面自定义 header 部位，使用示例可参考 `pages/dashboard/setting/appearance/index.vue` 页面
