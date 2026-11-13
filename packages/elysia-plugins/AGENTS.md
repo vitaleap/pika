@@ -25,7 +25,6 @@
 src/
   index.ts                       # 统一导出入口（`export * from './<plugin>'`）
   error.ts                       # HttpError + 全局错误处理插件
-  frontend-dev.ts                # 开发环境前端 dev server 反代插件（HTTP + WebSocket）
   global-context.ts             # 全局上下文插件（基于 AsyncLocalStorage，避免 service 层传递 context）
   i18n.ts                        # 请求级语言协商和翻译插件
   jwt.ts                         # JWT 鉴权插件（注册 @elysia/jwt，支持 includePaths/excludePaths 白/黑名单与 prefixPaths）

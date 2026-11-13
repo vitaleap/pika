@@ -8,7 +8,7 @@ import {
   triggerOnStartBefore,
 } from '@pika/elysia-hook'
 import { openapiPlugin } from '@pika/elysia-openapi'
-import { errorPlugin, frontendDevPlugin, reqIdPlugin, staticPlugin } from '@pika/elysia-plugins'
+import { errorPlugin, reqIdPlugin, staticPlugin } from '@pika/elysia-plugins'
 import { config } from '@/common/config'
 import { log } from '@/common/log'
 import { snowflake } from '@/common/snowflake'
@@ -88,10 +88,6 @@ export const startApp = async (opts?: { port?: number }) => {
   const port = opts?.port || config.port
   await triggerOnStartBefore()
   const app = new Elysia().mount(basePath, api.fetch)
-
-  if (config.mode === 'development') {
-    app.use(frontendDevPlugin({ port: 9527 }))
-  }
 
   if (Bun.env.EMBED_WEB === 'true') {
     app.use(staticPlugin({ root: embedPath('web'), basePath }))
