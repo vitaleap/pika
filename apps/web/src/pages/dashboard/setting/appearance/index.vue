@@ -1,20 +1,27 @@
 <template>
-  <div class="setting-appearance">
-    <n-card content-class="py-2!">
-      <np-cell-group bordered :options="themeOptions"></np-cell-group>
-    </n-card>
-    <div class="setting-appearance__title">{{ t('lightStyle') }}</div>
-    <n-card content-class="py-2!">
-      <np-cell-group bordered :options="lightOptions"></np-cell-group>
-    </n-card>
-    <div class="setting-appearance__title">{{ t('darkStyle') }}</div>
-    <n-card content-class="py-2!">
-      <np-cell-group bordered :options="darkOptions"></np-cell-group>
-    </n-card>
-    <div class="setting-appearance__title">{{ t('preview') }}</div>
-    <n-card content-class="py-4!">
-      <appearance-preview :theme-style="preferenceStore.themeStyle" />
-    </n-card>
+  <div class="setting-appearance h-full flex flex-col">
+    <!-- hideHeader 后由页面自渲染 header 与 content -->
+    <g-layout-header></g-layout-header>
+
+    <g-layout-content>
+      <div class="flex flex-col gap-2">
+        <n-card content-class="py-2!">
+          <np-cell-group bordered :options="themeOptions"></np-cell-group>
+        </n-card>
+        <div class="setting-appearance__title">{{ t('lightStyle') }}</div>
+        <n-card content-class="py-2!">
+          <np-cell-group bordered :options="lightOptions"></np-cell-group>
+        </n-card>
+        <div class="setting-appearance__title">{{ t('darkStyle') }}</div>
+        <n-card content-class="py-2!">
+          <np-cell-group bordered :options="darkOptions"></np-cell-group>
+        </n-card>
+        <div class="setting-appearance__title">{{ t('preview') }}</div>
+        <n-card content-class="py-4!">
+          <appearance-preview :theme-style="preferenceStore.themeStyle" />
+        </n-card>
+      </div>
+    </g-layout-content>
   </div>
 </template>
 <script setup lang="tsx">
@@ -31,6 +38,8 @@ import AppearancePreview from './components/appearance-preview.vue'
 definePage({
   meta: {
     title: i18nTitle('pageTitle.appearance'),
+    // 页面自己渲染 g-layout-header / g-layout-content
+    hideHeader: true,
   },
 })
 
@@ -160,8 +169,6 @@ const darkOptions = computed<NpCellGroupOption[]>(() => styleOptions('dark'))
 </script>
 <style lang="scss" scoped>
 .setting-appearance {
-  @apply flex flex-col gap-2;
-
   &__title {
     @apply px-2 color-text-2 text-xs select-none pt-4;
   }
