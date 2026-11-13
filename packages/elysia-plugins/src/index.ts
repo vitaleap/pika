@@ -1,5 +1,4 @@
 export * from './error'
-export * from './frontend-dev'
 export * from './global-context'
 export * from './i18n'
 export * from './jwt'

@@ -24,7 +24,8 @@ import { compression } from 'vite-plugin-compression2'
 // https://vite.dev/config/
 export default (config: ConfigEnv): UserConfig => {
   const env = loadEnv(config.mode, process.cwd())
-  const serverUrl = env['VITE_HTTP_BASE_URL'] || 'http://127.0.0.1:9528'
+  const serverUrl = env['VITE_SERVER_URL'] || 'http://127.0.0.1:9528'
+  const port = Number(env['VITE_WEB_PORT']) || 9527
   return defineConfig({
     plugins: [
       VueRouter({
@@ -71,7 +72,8 @@ export default (config: ConfigEnv): UserConfig => {
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     server: {
       host: '0.0.0.0',
-      port: 9527,
+      port,
+      strictPort: true,
       open: false,
       cors: true,
       proxy: {
