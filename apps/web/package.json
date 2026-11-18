@@ -13,7 +13,7 @@
     "check:type": "run-s gen-types type-check",
     "lint": "run-p lint:*",
     "lint:format": "prettier --write src",
-    "gen-types": "jiti scripts/gen-types.ts",
+    "gen-types": "bun scripts/gen-types.ts",
     "type-check": "vue-tsc -b --noEmit"
   },
   "dependencies": {
@@ -41,7 +41,6 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitejs/plugin-vue-jsx": "^5.1.6",
     "@vue/tsconfig": "^0.9.1",
-    "jiti": "^2.7.0",
     "naive-plus": "0.1.0-beta.27",
     "naive-ui": "^2.45.2",
     "sass": "^1.99.0",

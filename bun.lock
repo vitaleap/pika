@@ -13,7 +13,6 @@
         "npm-run-all2": "^9.0.3",
         "prettier": "^3.9.6",
         "typescript": "^6.0.3",
-        "vite-plugin-compression2": "^2.5.3",
       },
     },
     "apps/server": {
@@ -73,7 +72,6 @@
         "@vitejs/plugin-vue": "^6.0.8",
         "@vitejs/plugin-vue-jsx": "^5.1.6",
         "@vue/tsconfig": "^0.9.1",
-        "jiti": "^2.7.0",
         "naive-plus": "0.1.0-beta.27",
         "naive-ui": "^2.45.2",
         "sass": "^1.99.0",

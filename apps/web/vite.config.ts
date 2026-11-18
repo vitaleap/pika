@@ -23,7 +23,7 @@ import { compression } from 'vite-plugin-compression2'
 
 // https://vite.dev/config/
 export default (config: ConfigEnv): UserConfig => {
-  const env = loadEnv(config.mode, process.cwd())
+  const env = loadEnv(config.mode, import.meta.dirname)
   const serverUrl = env['VITE_SERVER_URL'] || 'http://127.0.0.1:9528'
   const port = Number(env['VITE_WEB_PORT']) || 9527
   return defineConfig({
@@ -34,6 +34,7 @@ export default (config: ConfigEnv): UserConfig => {
       }),
       vue(),
       VueI18nPlugin({
+        fullInstall: false,
         include: [fileURLToPath(new URL('./src/locales/**', import.meta.url))],
       }),
       vueJsx(),
@@ -49,27 +50,31 @@ export default (config: ConfigEnv): UserConfig => {
         dts: 'components.d.ts',
       }),
       openapiGenerator({ input: `${serverUrl}/api/openapi/json`, watchDebounce: 5 }),
-      compression({ algorithms: ['gzip'] }),
+      compression({ threshold: 1024, algorithms: ['gzip'] }),
     ],
     build: {
       manifest: true,
       target: 'es2020',
       rolldownOptions: {
+        checks: { bundlerTimings: false },
         output: {
-          minify: true,
           codeSplitting: {
             groups: [
               { name: 'vendor-vue', test: /[\\/](?:vue|pinia|vue-router|@vue)[\\/]/ },
               { name: 'vendor-utils', test: /[\\/](?:dayjs|es-toolkit|@vueuse|alova)[\\/]/ },
+              { name: 'vendor-captcha', test: /[\\/]go-captcha-vue[\\/]/ },
+              { name: 'vendor-naive-table', test: /naive-ui[\\/]es[\\/](?:data-table|table)[\\/]/ },
               { name: 'vendor-naive', test: /[\\/](?:naive-ui)[\\/]/ },
               { name: 'vendor-naive-plus', test: /[\\/](?:naive-plus)[\\/]/ },
-              { name: 'vendor-captcha', test: /[\\/]go-captcha-vue[\\/]/ },
             ],
           },
         },
       },
     },
-    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+    resolve: {
+      alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+      dedupe: ['vue', 'vue-router', 'pinia', 'naive-ui', 'naive-plus'],
+    },
     server: {
       host: '0.0.0.0',
       port,
