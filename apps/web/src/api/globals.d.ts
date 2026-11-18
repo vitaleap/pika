@@ -149,7 +149,7 @@ declare global {
        * ---
        * **RequestBody**
        * ```ts
-       * type RequestBody = { grant_type: 'password'; username: string; password: string; scope?: string; } | { grant_type: 'phone_code'; phone: string; code: string; scope?: string; } | { grant_type: 'email_code'; email: string; code: string; scope?: string; } | { grant_type: 'authorization_code'; code: string; redirect_uri: string; client_id: string; client_secret: string; scope?: string; } | { grant_type: 'refresh_token'; refresh_token: string; } | { grant_type: 'client_credentials' | 'device_code'; scope?: string; }
+       * type RequestBody = { grant_type: 'password'; username: string; password: string; mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; scope?: string; } | { grant_type: 'phone_code'; phone: string; code: string; mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; scope?: string; } | { grant_type: 'email_code'; email: string; code: string; mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; scope?: string; } | { grant_type: 'authorization_code'; code: string; redirect_uri: string; client_id: string; client_secret: string; scope?: string; } | { grant_type: 'refresh_token'; refresh_token: string; } | { grant_type: 'client_credentials' | 'device_code'; scope?: string; }
        * ```
        * ---
        * **Response**
@@ -170,9 +170,30 @@ declare global {
           >
           & {
             data:
-              | { grant_type: 'password'; username: string; password: string; scope?: string }
-              | { grant_type: 'phone_code'; phone: string; code: string; scope?: string }
-              | { grant_type: 'email_code'; email: string; code: string; scope?: string }
+              | {
+                grant_type: 'password'
+                username: string
+                password: string
+                mfaType?: 'totp' | 'recovery_code'
+                mfaValue?: string
+                scope?: string
+              }
+              | {
+                grant_type: 'phone_code'
+                phone: string
+                code: string
+                mfaType?: 'totp' | 'recovery_code'
+                mfaValue?: string
+                scope?: string
+              }
+              | {
+                grant_type: 'email_code'
+                email: string
+                code: string
+                mfaType?: 'totp' | 'recovery_code'
+                mfaValue?: string
+                scope?: string
+              }
               | {
                 grant_type: 'authorization_code'
                 code: string
@@ -453,7 +474,7 @@ declare global {
        * ---
        * **RequestBody**
        * ```ts
-       * type RequestBody = { name?: string; password?: string; newPassword?: string; picture?: string; }
+       * type RequestBody = { name?: string; picture?: string; }
        * ```
        * ---
        * **Response**
@@ -463,11 +484,36 @@ declare global {
        */
       edit<
         Config extends Alova2MethodConfig<{ id: string; name: string; picture?: string }> & {
-          data: { name?: string; password?: string; newPassword?: string; picture?: string }
+          data: { name?: string; picture?: string }
         },
       >(
         config: Config,
       ): Alova2Method<{ id: string; name: string; picture?: string }, 'user.edit', Config>
+      /**
+       * ---
+       * [PATCH] Change user password
+       * **path:** /system/user/password
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { oldPassword: string; newPassword: string; mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { success: boolean; }
+       * ```
+       */
+      changePassword<
+        Config extends Alova2MethodConfig<{ success: boolean }> & {
+          data: {
+            oldPassword: string
+            newPassword: string
+            mfaType?: 'totp' | 'recovery_code'
+            mfaValue?: string
+          }
+        },
+      >(config: Config): Alova2Method<{ success: boolean }, 'user.changePassword', Config>
       /**
        * ---
        * [POST] Edit user email
@@ -680,6 +726,181 @@ declare global {
         'user.savePreference',
         Config
       >
+    }
+    multiFactor: {
+      /**
+       * ---
+       * [GET] Get multi-factor status
+       * **path:** /system/multi-factor/
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { enabled: boolean; totp: boolean; recoveryCode: boolean; recoveryCodeCount: number; }
+       * ```
+       */
+      getMultiFactor<
+        Config extends Alova2MethodConfig<
+          { enabled: boolean; totp: boolean; recoveryCode: boolean; recoveryCodeCount: number }
+        >,
+      >(
+        config?: Config,
+      ): Alova2Method<
+        { enabled: boolean; totp: boolean; recoveryCode: boolean; recoveryCodeCount: number },
+        'multiFactor.getMultiFactor',
+        Config
+      >
+      /**
+       * ---
+       * [PATCH] Enable or disable two-step verification
+       * **path:** /system/multi-factor/
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { enabled: boolean; mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { enabled: boolean; }
+       * ```
+       */
+      toggleMultiFactor<
+        Config extends Alova2MethodConfig<{ enabled: boolean }> & {
+          data: { enabled: boolean; mfaType?: 'totp' | 'recovery_code'; mfaValue?: string }
+        },
+      >(config: Config): Alova2Method<{ enabled: boolean }, 'multiFactor.toggleMultiFactor', Config>
+      /**
+       * ---
+       * [POST] Start authenticator (TOTP) setup
+       * **path:** /system/multi-factor/totp/setup
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { secret: string; uri: string; }
+       * ```
+       */
+      setupMultiFactorTotp<
+        Config extends Alova2MethodConfig<{ secret: string; uri: string }> & {
+          data: { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string }
+        },
+      >(
+        config: Config,
+      ): Alova2Method<{ secret: string; uri: string }, 'multiFactor.setupMultiFactorTotp', Config>
+      /**
+       * ---
+       * [POST] Confirm authenticator (TOTP) setup
+       * **path:** /system/multi-factor/totp/confirm
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { code: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { success: boolean; }
+       * ```
+       */
+      confirmMultiFactorTotp<
+        Config extends Alova2MethodConfig<{ success: boolean }> & { data: { code: string } },
+      >(
+        config: Config,
+      ): Alova2Method<{ success: boolean }, 'multiFactor.confirmMultiFactorTotp', Config>
+      /**
+       * ---
+       * [POST] Remove authenticator (TOTP)
+       * **path:** /system/multi-factor/totp/remove
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { success: boolean; }
+       * ```
+       */
+      removeMultiFactorTotp<
+        Config extends Alova2MethodConfig<{ success: boolean }> & {
+          data: { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string }
+        },
+      >(
+        config: Config,
+      ): Alova2Method<{ success: boolean }, 'multiFactor.removeMultiFactorTotp', Config>
+      /**
+       * ---
+       * [POST] Generate recovery codes
+       * **path:** /system/multi-factor/recovery-code/generate
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { batchId: string; codes: Array<string>; }
+       * ```
+       */
+      generateMultiFactorRecoveryCodes<
+        Config extends Alova2MethodConfig<{ batchId: string; codes: Array<string> }> & {
+          data: { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string }
+        },
+      >(
+        config: Config,
+      ): Alova2Method<
+        { batchId: string; codes: Array<string> },
+        'multiFactor.generateMultiFactorRecoveryCodes',
+        Config
+      >
+      /**
+       * ---
+       * [POST] Confirm recovery codes have been saved
+       * **path:** /system/multi-factor/recovery-code/confirm
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { batchId: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { success: boolean; }
+       * ```
+       */
+      confirmMultiFactorRecoveryCodes<
+        Config extends Alova2MethodConfig<{ success: boolean }> & { data: { batchId: string } },
+      >(
+        config: Config,
+      ): Alova2Method<{ success: boolean }, 'multiFactor.confirmMultiFactorRecoveryCodes', Config>
+      /**
+       * ---
+       * [POST] Remove recovery codes
+       * **path:** /system/multi-factor/recovery-code/remove
+       * ---
+       * **RequestBody**
+       * ```ts
+       * type RequestBody = { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { success: boolean; }
+       * ```
+       */
+      removeMultiFactorRecoveryCodes<
+        Config extends Alova2MethodConfig<{ success: boolean }> & {
+          data: { mfaType?: 'totp' | 'recovery_code'; mfaValue?: string }
+        },
+      >(
+        config: Config,
+      ): Alova2Method<{ success: boolean }, 'multiFactor.removeMultiFactorRecoveryCodes', Config>
     }
     adminConfig: {
       /**
@@ -1021,7 +1242,7 @@ declare global {
        * ---
        * **Response**
        * ```ts
-       * type Response = { items: Array<{ id: string; name: string; email?: string; emailVerified: boolean; phoneNumber?: string; phoneNumberVerified: boolean; picture?: string; loginAt?: string; createAt: string; }>; total: number; }
+       * type Response = { items: Array<{ id: string; name: string; email?: string; emailVerified: boolean; phoneNumber?: string; phoneNumberVerified: boolean; picture?: string; multiFactorEnabled: boolean; loginAt?: string; createAt: string; }>; total: number; }
        * ```
        */
       list<
@@ -1037,6 +1258,7 @@ declare global {
                   phoneNumber?: string
                   phoneNumberVerified: boolean
                   picture?: string
+                  multiFactorEnabled: boolean
                   loginAt?: string
                   createAt: string
                 }
@@ -1066,6 +1288,7 @@ declare global {
               phoneNumber?: string
               phoneNumberVerified: boolean
               picture?: string
+              multiFactorEnabled: boolean
               loginAt?: string
               createAt: string
             }
@@ -1092,7 +1315,7 @@ declare global {
        * ---
        * **Response**
        * ```ts
-       * type Response = { id: string; name: string; email?: string; emailVerified: boolean; phoneNumber?: string; phoneNumberVerified: boolean; picture?: string; loginAt?: string; createAt: string; }
+       * type Response = { id: string; name: string; email?: string; emailVerified: boolean; phoneNumber?: string; phoneNumberVerified: boolean; picture?: string; multiFactorEnabled: boolean; loginAt?: string; createAt: string; }
        * ```
        */
       update<
@@ -1106,6 +1329,7 @@ declare global {
               phoneNumber?: string
               phoneNumberVerified: boolean
               picture?: string
+              multiFactorEnabled: boolean
               loginAt?: string
               createAt: string
             }
@@ -1131,6 +1355,7 @@ declare global {
           phoneNumber?: string
           phoneNumberVerified: boolean
           picture?: string
+          multiFactorEnabled: boolean
           loginAt?: string
           createAt: string
         },
@@ -1181,6 +1406,24 @@ declare global {
           data: { password: string }
         },
       >(config: Config): Alova2Method<{ success: boolean }, 'adminUser.resetPassword', Config>
+      /**
+       * ---
+       * [DELETE] 移除用户多因素验证
+       * **path:** /system/admin/user/{id}/multi-factor
+       * ---
+       * **Path Parameters**
+       * ```ts
+       * type PathParameters = { id: string; }
+       * ```
+       * ---
+       * **Response**
+       * ```ts
+       * type Response = { success: boolean; }
+       * ```
+       */
+      removeMultiFactor<
+        Config extends Alova2MethodConfig<{ success: boolean }> & { pathParams: { id: string } },
+      >(config: Config): Alova2Method<{ success: boolean }, 'adminUser.removeMultiFactor', Config>
     }
     adminLoginLog: {
       /**
@@ -1252,7 +1495,7 @@ declare global {
         Config
       >
     }
-    health: {
+    demoV1: {
       /**
        * ---
        * [GET] System health check
@@ -1263,7 +1506,7 @@ declare global {
        * type Response = { status: 'ok'; startTime: string; requestIp: string; workId: number; hello: string; }
        * ```
        */
-      health<
+      demo_health<
         Config extends Alova2MethodConfig<
           { status: 'ok'; startTime: string; requestIp: string; workId: number; hello: string }
         >,
@@ -1271,7 +1514,7 @@ declare global {
         config?: Config,
       ): Alova2Method<
         { status: 'ok'; startTime: string; requestIp: string; workId: number; hello: string },
-        'health.health',
+        'demoV1.demo_health',
         Config
       >
     }

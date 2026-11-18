@@ -50,13 +50,14 @@ watchEffect(() => {
 })
 
 onMounted(() => {
-  const { message, notification, loadingBar } = createDiscreteApi(
-    ['message', 'notification', 'loadingBar'],
+  const { message, notification, loadingBar, modal } = createDiscreteApi(
+    ['message', 'notification', 'loadingBar', 'modal'],
     { configProviderProps },
   )
   window.$message = message
   window.$notification = notification
   window.$loadingBar = loadingBar
+  window.$modal = modal
 })
 
 // np config provider

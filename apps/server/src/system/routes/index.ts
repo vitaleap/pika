@@ -6,6 +6,7 @@ import { authRouter } from './auth'
 import { captchaRouter } from './captcha'
 import { fileRouter } from './file'
 import { systemRouter } from './system'
+import { multiFactorRouter } from './multi-factor'
 import { userRouter } from './user'
 
 // 保留 tuple 类型，让 Elysia 的 `.use` 正确合并每个路由
@@ -17,6 +18,7 @@ export const routes = defineRoutes([
   captchaRouter,
   fileRouter,
   userRouter,
+  multiFactorRouter,
   adminConfigRouter,
   adminUserRouter,
   adminLoginLogRouter,

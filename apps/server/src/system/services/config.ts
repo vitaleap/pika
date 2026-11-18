@@ -121,7 +121,7 @@ export abstract class ConfigService {
     const merged = ConfigService.UpdateRespSchema.safeParse(mergeConfig(current, patch))
     if (!merged.success) {
       const issue = merged.error.issues[0]!
-      throw new HttpError(issue.message, 422, issue.path.join('.'))
+      throw new HttpError(issue.message, 422, { detail: issue.path.join('.') })
     }
     await ConfigRepository.update(patch)
     await ConfigService.clearCache()

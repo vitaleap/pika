@@ -2,6 +2,12 @@ import { defineStore } from 'pinia'
 import type { User, TokenInfo } from './types'
 import { useStorage } from '@/utils/storage'
 
+/** 登录参数，与后端 token 接口的 `grant_type` 分支一致 */
+type LoginParams =
+  | { grant_type: 'password'; username: string; password: string }
+  | { grant_type: 'phone_code'; phone: string; code: string }
+  | { grant_type: 'email_code'; email: string; code: string }
+
 const defaultUser: User = {
   id: '10000',
   nickname: 'Momo',
@@ -40,38 +46,33 @@ export const useUserStore = defineStore('user', () => {
     })
   }
 
-  const loginPassword = async (username: string, password: string) => {
+  /**
+   * 登录请求共用逻辑。
+   * 需要第二因素时由 api 拦截器弹窗并重试，取消验证则请求直接失败，登录自然中止。
+   */
+  const login = async (data: LoginParams): Promise<void> => {
     tokenInfo.value = await Apis.auth.token({
-      data: {
-        grant_type: 'password',
-        username,
-        password,
-      },
+      data,
+      meta: { skipAuthRefresh: true },
     })
-    await userinfo()
+    try {
+      // 用户信息是登录结果的一部分：拿不到就不能带着默认用户继续跳转，否则权限判断全错
+      await userinfo(false)
+    } catch (error) {
+      // 回滚已签发的 token，避免「已登录但用户信息是默认值」的中间态
+      tokenInfo.value = undefined
+      throw error
+    }
   }
 
-  const loginPhoneCode = async (phone: string, code: string) => {
-    tokenInfo.value = await Apis.auth.token({
-      data: {
-        grant_type: 'phone_code',
-        phone,
-        code,
-      },
-    })
-    await userinfo()
-  }
+  const loginPassword = (username: string, password: string) =>
+    login({ grant_type: 'password', username, password })
 
-  const loginEmailCode = async (email: string, code: string) => {
-    tokenInfo.value = await Apis.auth.token({
-      data: {
-        grant_type: 'email_code',
-        email,
-        code,
-      },
-    })
-    await userinfo()
-  }
+  const loginPhoneCode = (phone: string, code: string) =>
+    login({ grant_type: 'phone_code', phone, code })
+
+  const loginEmailCode = (email: string, code: string) =>
+    login({ grant_type: 'email_code', email, code })
 
   const sendCode = async (
     channel: 'email' | 'phone',

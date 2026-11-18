@@ -1,4 +1,3 @@
-import { isEmail } from '@pika/shared'
 import { useUserStore } from '@/stores/user'
 import { setStore, getStore } from '@/utils/storage'
 import type { FormOption } from 'naive-plus'
@@ -41,6 +40,8 @@ export const useOption = (onOk: () => void) => {
         text: t('login'),
         props: {
           block: true,
+          // 用原生 submit 触发表单提交，浏览器与密码管理器才能感知登录动作
+          attrType: 'submit',
         },
       },
       resetBtn: false,
@@ -48,9 +49,7 @@ export const useOption = (onOk: () => void) => {
     enterSubmitMode: 'last',
     onSubmit: async ({ username, password }) => {
       await userStore.loginPassword(username, password)
-      if (isEmail(username)) {
-        setStore(LOGIN_USERNAME_KEY, username)
-      }
+      setStore(LOGIN_USERNAME_KEY, username)
       onOk()
     },
     columns: [
@@ -60,6 +59,11 @@ export const useOption = (onOk: () => void) => {
           placeholder: t('accountPlaceholder'),
           maxlength: 40,
           clearable: true,
+          // 标记为账号字段，供 Bitwarden 等识别并填充
+          inputProps: {
+            name: 'username',
+            autocomplete: 'username',
+          },
         },
         rule: { required: true, trigger: 'input', message: t('required') },
         slots: {
@@ -75,6 +79,11 @@ export const useOption = (onOk: () => void) => {
           maxlength: 50,
           clearable: true,
           showPasswordOn: 'click',
+          // 标记为当前密码字段，供 Bitwarden 等识别并提示保存
+          inputProps: {
+            name: 'password',
+            autocomplete: 'current-password',
+          },
         },
         rule: { required: true, trigger: 'input', message: t('required') },
         slots: {

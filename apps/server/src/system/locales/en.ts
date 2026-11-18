@@ -58,7 +58,6 @@ export const en = {
   OSS_ENDPOINT_INVALID: 'Invalid endpoint URL',
   OSS_REGION_REQUIRED: 'OSS Region is required',
   OSS_SECRET_ACCESS_KEY_REQUIRED: 'SecretAccessKey is required',
-  PASSWORD_CHANGE_FIELDS_REQUIRED: 'Both old and new passwords are required to change password',
   PASSWORD_FORMAT_INVALID: 'Password contains unsupported characters',
   PASSWORD_INCORRECT: 'Incorrect password',
   PASSWORD_LETTER_NUMBER_REQUIRED: 'Password must contain both letters and numbers',
@@ -83,6 +82,21 @@ export const en = {
   SMTP_HOST_REQUIRED: 'SMTP host is required',
   SMTP_PASS_REQUIRED: 'SMTP password is required',
   SMTP_USER_REQUIRED: 'SMTP username is required',
+  MULTI_FACTOR_CODE_INCORRECT: 'Multi-factor verification failed',
+  MULTI_FACTOR_CODE_USED:
+    'This code has already been used. Please wait for the authenticator to refresh',
+  MULTI_FACTOR_NOT_BOUND: 'This verification method has not been set up',
+  MULTI_FACTOR_RECOVERY_CODE_SUPERSEDED:
+    'Recovery codes were regenerated. Please confirm with the latest batch',
+  MULTI_FACTOR_REQUIRED: 'Multi-factor verification is required',
+  MULTI_FACTOR_SECRET_INVALID:
+    'The authenticator secret is invalid. Please set up the authenticator again',
+  MULTI_FACTOR_SETUP_EXPIRED: 'The authenticator setup has expired. Please start over',
+  MULTI_FACTOR_TOTP_EXISTS: 'The authenticator has already been set up',
+  MULTI_FACTOR_TOTP_REQUIRED:
+    'Set up an authenticator first. Recovery codes only serve as a backup',
+  MULTI_FACTOR_TOO_MANY_FAILURES: 'Too many failed attempts. Try again later',
+  MULTI_FACTOR_VALUE_REQUIRED: 'Multi-factor verification cannot be empty',
   UNAUTHORIZED: 'Unauthorized',
   UNIQUE_ID_REQUIRED: 'uniqueId is required',
   UPLOAD_RATE_LIMITED: 'Uploading too frequently. Please try again later',

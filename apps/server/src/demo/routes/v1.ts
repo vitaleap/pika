@@ -12,7 +12,7 @@ const startTime = dayjs()
 export const v1Router = new Elysia({
   prefix: '/v1',
   detail: {
-    tags: ['health'],
+    tags: ['demoV1'],
     description: 'demo接口',
   },
 })
@@ -24,7 +24,7 @@ export const v1Router = new Elysia({
     '/health',
     {
       detail: {
-        operationId: 'health',
+        operationId: 'demo_health',
         summary: 'System health check',
       },
       response: z.object({

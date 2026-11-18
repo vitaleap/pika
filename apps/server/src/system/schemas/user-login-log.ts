@@ -9,12 +9,14 @@ export type LoginType = (typeof loginTypes)[number]
 
 /**
  * 登录失败原因，数据库只存 i18n key，接口返回时按请求语言翻译。
- * 历史数据为中文原文，翻译时找不到对应 key 会原样返回。
  */
 export const loginFailReasons = {
   userNotFound: 'SYSTEM.USER_NOT_FOUND',
   passwordIncorrect: 'SYSTEM.PASSWORD_INCORRECT',
   verificationCodeIncorrect: 'SYSTEM.VERIFICATION_CODE_INCORRECT',
+  multiFactorIncorrect: 'SYSTEM.MULTI_FACTOR_CODE_INCORRECT',
+  multiFactorCodeUsed: 'SYSTEM.MULTI_FACTOR_CODE_USED',
+  multiFactorTooManyFailures: 'SYSTEM.MULTI_FACTOR_TOO_MANY_FAILURES',
 } as const
 export type LoginFailReason = (typeof loginFailReasons)[keyof typeof loginFailReasons]
 

@@ -25,6 +25,14 @@ if (!jwtSecret || jwtSecret === '?') {
   )
 }
 
+// 多因素验证密钥：显式配置时不允许保留 `?` 占位值，否则所有部署共用同一密钥加密 TOTP 密钥
+const multiFactorSecret = env['MULTI_FACTOR_SECRET']?.trim()
+if (multiFactorSecret === '?') {
+  throw new Error(
+    '[config] MULTI_FACTOR_SECRET 不能使用占位值 `?`（可用 `openssl rand -hex 32` 生成），或删除该变量以回退到 JWT_SECRET',
+  )
+}
+
 /**
  * 缺省配置值
  */
@@ -60,6 +68,10 @@ export const config: Config = {
   databaseUrl: env['DATABASE_URL'] || defaultConfig.databaseUrl,
   cacheUrl: env['CACHE_URL'] || defaultConfig.cacheUrl,
   filePath: env['FILE_PATH'] || defaultConfig.filePath,
+  multiFactor: {
+    // 未单独配置时复用 JWT 密钥，避免新增功能导致已有部署启动失败
+    secret: multiFactorSecret || jwtSecret,
+  },
   jwt: {
     secret: jwtSecret,
     issuer: env['JWT_ISSUER'] || defaultConfig.jwt.issuer,

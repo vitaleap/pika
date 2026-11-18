@@ -30,7 +30,7 @@ const messages: LocaleMessages = {
 export const usePassword = (onSuccess: () => void) => {
   const { t } = useI18n({ useScope: 'isolated', messages })
   type FormData = {
-    password: string
+    oldPassword: string
     newPassword: string
     confirmNewPassword: string
   }
@@ -53,7 +53,7 @@ export const usePassword = (onSuccess: () => void) => {
         {
           validator: (value, rule) => {
             const field = rule.field
-            if (field === 'newPassword' && value && value === data.password) {
+            if (field === 'newPassword' && value && value === data.oldPassword) {
               return new Error(t('sameAsOld'))
             }
             if (field === 'confirmNewPassword' && value !== data.newPassword) {
@@ -68,8 +68,9 @@ export const usePassword = (onSuccess: () => void) => {
   }
 
   const passwordOption = computed<FormOption<FormData>>(() => ({
-    onSubmit: async (data) => {
-      await Apis.user.edit({ data })
+    // 确认密码仅前端校验，不随请求提交
+    onSubmit: async ({ confirmNewPassword: _confirm, ...body }) => {
+      await Apis.user.changePassword({ data: body })
       window.$message.success(t('success'))
       onSuccess()
     },
@@ -79,7 +80,7 @@ export const usePassword = (onSuccess: () => void) => {
     footer: false,
     columns: [
       {
-        key: 'password',
+        key: 'oldPassword',
         type: 'password',
         props: {
           placeholder: t('oldPassword'),

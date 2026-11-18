@@ -44,6 +44,20 @@ export const dayjsType = customType<{
   },
 })
 
+/**
+ * JSON 类型：以 text 存 JSON 文本，读写时自动序列化/反序列化，不依赖具体数据库的 json 类型。
+ * SQL NULL 与 undefined 由 drizzle 在驱动层短路，不会进入 toDriver/fromDriver。
+ */
+export const jsonType = <T>() =>
+  customType<{
+    data: T
+    driverData: string
+  }>({
+    dataType: () => 'text',
+    toDriver: (value: T) => JSON.stringify(value),
+    fromDriver: (value: string) => JSON.parse(value) as T,
+  })()
+
 export const baseColumns = (t: PgColumnsBuilders) => ({
   id: t
     .varchar({ length: 20 })

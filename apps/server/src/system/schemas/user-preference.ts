@@ -1,6 +1,6 @@
-import { customType, snakeCase } from 'drizzle-orm/pg-core'
+import { snakeCase } from 'drizzle-orm/pg-core'
 import { type BackgroundType } from '@pika/shared'
-import { baseColumns } from '@/common/db/base/columns'
+import { baseColumns, jsonType } from '@/common/db/base/columns'
 
 /** 单套（明亮/暗黑）外观风格 */
 export type ThemeStyle = {
@@ -27,31 +27,11 @@ export type AppearanceConfig = {
   dark: ThemeStyle
 }
 
-/**
- * 外观风格自定义类型。
- *
- * 数据库存为普通字符串（text）的 JSON 文本，读写时序列化/反序列化，
- * 不依赖具体数据库的 json 类型，方便后续切换数据库。
- */
-const appearanceType = customType<{
-  data: AppearanceConfig
-  driverData: string
-}>({
-  dataType() {
-    return 'text'
-  },
-  toDriver(value: AppearanceConfig): string {
-    return JSON.stringify(value)
-  },
-  fromDriver(value: string): AppearanceConfig {
-    return JSON.parse(value)
-  },
-})
-
 export const userPreference = snakeCase.table('user_preference', (t) => ({
   ...baseColumns(t),
   userId: t.varchar({ length: 20 }).notNull().unique(),
-  appearance: appearanceType().notNull(),
+  /** 外观风格，以 JSON 文本存储 */
+  appearance: jsonType<AppearanceConfig>().notNull(),
 }))
 
 export type UserPreference = typeof userPreference.$inferSelect

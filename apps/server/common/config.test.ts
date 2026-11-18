@@ -14,12 +14,12 @@ const runConfig = (env: Record<string, string> = {}) =>
     stderr: 'pipe',
   })
 
-const readCacheUrl = (env: Record<string, string>) => {
+const readConfigValue = (expression: string, env: Record<string, string> = {}) => {
   const proc = Bun.spawnSync({
     cmd: [
       process.execPath,
       '-e',
-      `const { config } = await import(${JSON.stringify(configPath)}); console.log(config.cacheUrl)`,
+      `const { config } = await import(${JSON.stringify(configPath)}); console.log(${expression})`,
     ],
     cwd: tmpdir(),
     env: { ...process.env, NODE_ENV: 'production', JWT_SECRET: 'secret', ...env },
@@ -47,11 +47,25 @@ describe('config', () => {
   })
 
   test('CACHE_URL 未配置或留空时回退默认文件缓存目录', () => {
-    const cacheUrl = readCacheUrl({ CACHE_URL: '' })
+    const cacheUrl = readConfigValue('config.cacheUrl', { CACHE_URL: '' })
     expect(cacheUrl.endsWith('/.pika/data/.cache')).toBe(true)
   })
 
   test('CACHE_URL=memory 时使用内存缓存', () => {
-    expect(readCacheUrl({ CACHE_URL: 'memory' })).toBe('memory')
+    expect(readConfigValue('config.cacheUrl', { CACHE_URL: 'memory' })).toBe('memory')
+  })
+
+  test('MULTI_FACTOR_SECRET 为占位值 ? 时拒绝启动', () => {
+    const proc = runConfig({
+      NODE_ENV: 'production',
+      JWT_SECRET: 'secret',
+      MULTI_FACTOR_SECRET: '?',
+    })
+    expect(proc.exitCode).not.toBe(0)
+    expect(proc.stderr.toString()).toContain('MULTI_FACTOR_SECRET')
+  })
+
+  test('未配置 MULTI_FACTOR_SECRET 时回退到 JWT_SECRET', () => {
+    expect(readConfigValue('config.multiFactor.secret', { MULTI_FACTOR_SECRET: '' })).toBe('secret')
   })
 })

@@ -1,7 +1,7 @@
 <template>
   <div class="admin-user p-4 flex flex-col">
     <n-card>
-      <np-table :key="locale" :option="tableOption"></np-table>
+      <np-table ref="tableRef" :key="locale" :option="tableOption"></np-table>
     </n-card>
 
     <n-modal
@@ -17,10 +17,11 @@
 </template>
 
 <script setup lang="tsx">
-import type { FormOption, TableOption } from 'naive-plus'
+import type { FormOption, NpTableInst, TableOption } from 'naive-plus'
 import { useI18n } from 'vue-i18n'
 import { formatTime } from '@/utils/date'
 import { i18nTitle } from '@/utils/i18n-title'
+import { useConfirmModal } from '@/composables/use-confirm-modal'
 
 type UserItem = Awaited<ReturnType<typeof Apis.adminUser.list>>['items'][number]
 
@@ -36,6 +37,9 @@ definePage({
     title: i18nTitle('pageTitle.userManagement'),
   },
 })
+
+const confirmModal = useConfirmModal()
+const tableRef = useTemplateRef<NpTableInst>('tableRef')
 
 const resetVisible = ref(false)
 const resetForm = ref<ResetForm>({
@@ -60,6 +64,20 @@ const renderContact = (value: string | undefined, verified: boolean) => {
 const openReset = (row: UserItem) => {
   resetForm.value = { id: row.id, password: '' }
   resetVisible.value = true
+}
+
+const removeMultiFactor = (row: UserItem) => {
+  confirmModal.show({
+    type: 'warning',
+    title: t('removeMultiFactor'),
+    content: t('removeMultiFactorConfirm', { name: row.name }),
+    onConfirm: async () => {
+      await Apis.adminUser.removeMultiFactor({ pathParams: { id: row.id } })
+      window.$message.success(t('removeMultiFactorSuccess'))
+      await tableRef.value?.refresh()
+      return true
+    },
+  })
 }
 
 const resetOption = computed<FormOption<ResetForm>>(() => ({
@@ -151,14 +169,24 @@ const tableOption = computed<TableOption<UserItem>>(() => ({
   ],
   operation: {
     label: t('operation'),
-    options: [
+    options: (row) => [
       { type: 'edit', label: t('edit') },
-      { type: 'del', label: () => <NText type="error">{t('remove')}</NText> },
       { key: 'resetPassword', label: t('resetPassword') },
+      ...(row.multiFactorEnabled
+        ? [
+            {
+              key: 'removeMultiFactor',
+              label: () => <NText type="error">{t('removeMultiFactor')}</NText>,
+            },
+          ]
+        : []),
+      { type: 'del', label: () => <NText type="error">{t('remove')}</NText> },
     ],
     onSelect: (key, row) => {
       if (key === 'resetPassword') {
         openReset(row)
+      } else if (key === 'removeMultiFactor') {
+        removeMultiFactor(row)
       }
     },
   },
@@ -206,6 +234,17 @@ const tableOption = computed<TableOption<UserItem>>(() => ({
       formProps: { type: 'switch' },
     },
     {
+      key: 'multiFactorEnabled',
+      label: t('multiFactor'),
+      props: { width: 120 },
+      formProps: { display: false },
+      render: (row) => (
+        <NTag size="small" type={row.multiFactorEnabled ? 'success' : 'default'}>
+          {row.multiFactorEnabled ? t('enabled') : t('disabled')}
+        </NTag>
+      ),
+    },
+    {
       key: 'createAt',
       label: t('createAt'),
       props: { width: 160 },
@@ -241,6 +280,12 @@ zh:
   remove: 删除
   nameRequired: 用户名不能为空
   resetPassword: 重置密码
+  removeMultiFactor: 移除多因素验证
+  removeMultiFactorConfirm: 确定移除用户「{name}」的多因素验证吗？
+  removeMultiFactorSuccess: 已移除多因素验证
+  multiFactor: 多因素验证
+  enabled: 已开启
+  disabled: 未开启
   resetTitle: 重置密码
   newPassword: 新密码
   newPasswordPlaceholder: 请输入新密码
@@ -267,6 +312,12 @@ en:
   remove: Delete
   nameRequired: Name is required
   resetPassword: Reset password
+  removeMultiFactor: Remove multi-factor
+  removeMultiFactorConfirm: Remove multi-factor for "{name}"?
+  removeMultiFactorSuccess: Multi-factor removed
+  multiFactor: Multi-factor
+  enabled: Enabled
+  disabled: Disabled
   resetTitle: Reset password
   newPassword: New password
   newPasswordPlaceholder: Enter new password

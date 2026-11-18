@@ -10,6 +10,14 @@ import { cache } from '@/common/cache'
 import { CaptchaService } from './captcha'
 import { EmailService } from './email'
 import { SmsService } from './sms'
+import {
+  MultiFactorService,
+  MultiFactorVerifyError,
+  multiFactorFailReasons,
+  multiFactorFields,
+  toMultiFactorVerify,
+  type MultiFactorVerify,
+} from './multi-factor'
 import { emailSchema, passwordSchema } from '@/system/utils/validation'
 import { HttpError } from '@pika/elysia-plugins'
 import { zodDayjs } from '@/common/zod'
@@ -21,7 +29,7 @@ type LoginType = 'password' | 'phone_code' | 'email_code'
 /** 失败次数过多时拒绝登录，避免暴力破解 */
 const assertLoginAllowed = async (ip: string, username: string): Promise<void> => {
   const recentFails = await UserLoginLogRepository.countRecentFailures(ip, username, 10)
-  if (recentFails >= 5) {
+  if (recentFails >= 10) {
     throw new HttpError(t('SYSTEM.LOGIN_RATE_LIMITED'), 429)
   }
 }
@@ -57,6 +65,7 @@ export abstract class AuthService {
     grant_type: z.literal('password'),
     username: z.string().min(1, t('SYSTEM.USERNAME_REQUIRED')),
     password: z.string().min(1, t('SYSTEM.PASSWORD_REQUIRED')),
+    ...multiFactorFields,
     scope: z.string().optional(),
   })
 
@@ -73,6 +82,7 @@ export abstract class AuthService {
     grant_type: z.literal('phone_code'),
     phone: z.string().min(1, t('SYSTEM.PHONE_REQUIRED')).refine(isPhone, t('SYSTEM.PHONE_INVALID')),
     code: z.string().min(1, t('SYSTEM.VERIFICATION_CODE_REQUIRED')),
+    ...multiFactorFields,
     scope: z.string().optional(),
   })
 
@@ -80,6 +90,7 @@ export abstract class AuthService {
     grant_type: z.literal('email_code'),
     email: emailSchema,
     code: z.string().min(1, t('SYSTEM.VERIFICATION_CODE_REQUIRED')),
+    ...multiFactorFields,
     scope: z.string().optional(),
   })
 
@@ -157,6 +168,14 @@ export abstract class AuthService {
       throw new HttpError(t('SYSTEM.ACCOUNT_OR_PASSWORD_INCORRECT'), 401)
     }
 
+    // 开启多因素验证后，每次登录都需在同一请求中带上验证方式与验证码
+    await AuthService.assertLoginMultiFactor(user, toMultiFactorVerify(body), {
+      username: body.username,
+      ip,
+      userAgent,
+      loginType: 'password',
+    })
+
     return finishLogin(user, {
       username,
       ip,
@@ -165,16 +184,56 @@ export abstract class AuthService {
     })
   }
 
-  // 验证码通过后删除缓存，并记录登录结果
+  /** 已开启多因素验证时校验第二因素，失败时写入登录失败日志 */
+  private static assertLoginMultiFactor = async (
+    user: { id: string; multiFactorEnabled: boolean },
+    mfa: MultiFactorVerify | undefined,
+    log: { username: string; ip: string; userAgent: string; loginType: LoginType },
+  ): Promise<void> => {
+    // 开关与实际可用的验证方式需同时成立，避免开关漏改时把用户挡在门外
+    const { hasMultiFactor } = await MultiFactorService.hasMultiFactor(user.id)
+    if (!user.multiFactorEnabled || !hasMultiFactor) {
+      return
+    }
+    if (!mfa) {
+      // 用 400 而非 401：401 是前端「access_token 失效，需要刷新」的信号，
+      // 两步验证未完成属于本次请求缺少参数，不能占用该通道
+      throw await MultiFactorService.requiredError(user.id)
+    }
+    try {
+      await MultiFactorService.assertVerified({
+        userId: user.id,
+        verify: mfa,
+        ip: log.ip,
+        userAgent: log.userAgent,
+      })
+    } catch (error) {
+      await UserLoginLogRepository.save({
+        ...log,
+        userId: user.id,
+        success: false,
+        // 与返回给客户端的错误保持一致，避免登录日志一律记为「验证码错误」
+        failReason:
+          error instanceof MultiFactorVerifyError
+            ? multiFactorFailReasons[error.reason]
+            : loginFailReasons.multiFactorIncorrect,
+      })
+      throw error
+    }
+  }
+
+  // 验证码与多因素验证通过后删除缓存，并记录登录结果
   private static oauthCodeLogin = async (
     {
       username,
       code,
       loginType,
+      mfa,
     }: {
       username: string
       code: string
       loginType: Exclude<LoginType, 'password'>
+      mfa: MultiFactorVerify | undefined
     },
     ip: string,
     userAgent?: string,
@@ -202,24 +261,29 @@ export abstract class AuthService {
       throw new HttpError(t('SYSTEM.VERIFICATION_CODE_INCORRECT'), 401)
     }
 
-    try {
-      if (isEmailLogin) {
-        await EmailService.verifyCode(username, code)
-      } else {
-        await SmsService.verifyCode(username, code)
+    const codeStore = isEmailLogin ? EmailService : SmsService
+    // 同一用户的验证码消费需串行，否则并发请求能同时通过校验；
+    await cache.lock(`user:${user.id}:login_code`, async () => {
+      try {
+        // 多因素验证通过后才消费验证码，否则用户取消验证后需要重新发送
+        await codeStore.verifyCodeAutoDelete(username, code, false)
+      } catch (error) {
+        await UserLoginLogRepository.save({
+          username,
+          userId: user.id,
+          ip,
+          userAgent,
+          loginType,
+          success: false,
+          failReason: loginFailReasons.verificationCodeIncorrect,
+        })
+        throw error
       }
-    } catch (error) {
-      await UserLoginLogRepository.save({
-        username,
-        userId: user.id,
-        ip,
-        userAgent,
-        loginType,
-        success: false,
-        failReason: loginFailReasons.verificationCodeIncorrect,
-      })
-      throw error
-    }
+
+      // 验证码登录同样需要第二因素，避免已开启多因素验证的账号绕过校验
+      await AuthService.assertLoginMultiFactor(user, mfa, { username, ip, userAgent, loginType })
+      await codeStore.deleteCode(username)
+    })
 
     return finishLogin(user, { username, ip, userAgent, loginType })
   }
@@ -234,6 +298,7 @@ export abstract class AuthService {
         username: body.phone,
         code: body.code,
         loginType: 'phone_code',
+        mfa: toMultiFactorVerify(body),
       },
       ip,
       userAgent,
@@ -251,6 +316,7 @@ export abstract class AuthService {
         username: email,
         code: body.code,
         loginType: 'email_code',
+        mfa: toMultiFactorVerify(body),
       },
       ip,
       userAgent,

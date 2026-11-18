@@ -101,14 +101,14 @@ zh:
   general: 常规
   preference: 偏好设定
   profile: 个人信息
-  security: 登录与安全性
+  security: 登录与安全
   appearance: 外观
   languageTimezone: 语言与时区
 en:
   general: General
   preference: Preferences
   profile: Personal Information
-  security: Sign-in & Security
+  security: Login & security
   appearance: Appearance
   languageTimezone: Language & Time zone
 </i18n>

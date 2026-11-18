@@ -131,6 +131,10 @@ import type { JwtPayload } from '@/common/plugins/auth'
 
 完整业务逻辑规范查看 `.agents/docs/server/services.md`。
 
+## security - 安全规范
+
+完整安全规范（加锁、限流、二次验证、越权与敏感数据）查看 `.agents/docs/server/security.md`。
+
 ## i18n - 国际化
 
 完整 Server 国际化规范查看 `.agents/docs/server/i18n.md`。

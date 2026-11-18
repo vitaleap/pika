@@ -1,8 +1,12 @@
 <template>
   <div class="setting-security">
-    <n-card content-class="py-2!">
-      <np-cell-group bordered :options="options"></np-cell-group>
-    </n-card>
+    <div class="flex flex-col gap-2">
+      <div class="setting-security__title">{{ t('account') }}</div>
+      <n-card content-class="py-2!">
+        <np-cell-group bordered :options="options"></np-cell-group>
+      </n-card>
+      <multi-factor-card></multi-factor-card>
+    </div>
   </div>
 </template>
 <script setup lang="tsx">
@@ -12,6 +16,7 @@ import { usePhone } from './phone'
 import { usePassword } from './password'
 import { useI18n } from 'vue-i18n'
 import { i18nTitle } from '@/utils/i18n-title'
+import MultiFactorCard from './components/multi-factor.vue'
 
 const { t } = useI18n()
 definePage({
@@ -111,6 +116,10 @@ const options: NpCellGroupOption[] = [
 </script>
 <style lang="scss">
 .setting-security {
+  &__title {
+    @apply px-2 color-text-2 text-xs select-none pt-4;
+  }
+
   .np-cell {
     --np-cell-padding-y: 8px;
     .np-cell__icon {
@@ -139,6 +148,7 @@ const options: NpCellGroupOption[] = [
 
 <i18n lang="yaml">
 zh:
+  account: 登录方式
   email: 邮箱
   phone: 手机号
   password: 密码
@@ -152,6 +162,7 @@ zh:
   cancel: 取消
   save: 保存
 en:
+  account: Sign-in methods
   email: Email
   phone: Phone
   password: Password

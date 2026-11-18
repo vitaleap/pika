@@ -27,6 +27,35 @@ export const userRouter = new Elysia({
     },
     ({ body, user }) => UserService.edit(user.sub, body),
   )
+  .patch(
+    '/password',
+    {
+      detail: {
+        operationId: 'changePassword',
+        summary: 'Change user password',
+      },
+      body: UserService.ChangePasswordBodySchema,
+      response: UserService.ChangePasswordRespSchema,
+    },
+    async ({ body, user, requestIp, request }) => {
+      await rateLimit(
+        {
+          second: 5,
+          minute: 10,
+          minute10: 30,
+          errorMessage: t('SYSTEM.REQUEST_RATE_LIMITED_MINUTE'),
+        },
+        `change_password:${user.sub}`,
+      )
+      // 已绑定验证方式时可能要求第二因素，日志需要记录来源设备
+      return UserService.changePassword(
+        user.sub,
+        body,
+        requestIp,
+        request.headers.get('user-agent') ?? '',
+      )
+    },
+  )
   .post(
     '/edit/email',
     {

@@ -42,7 +42,7 @@ export interface FileConfig {
 }
 
 /**
- * 调用方注入的目标错误类（通常为框架提供的 HttpError）；参数 `(message, status?, detail?)`。
+ * 调用方注入的目标错误类（通常为框架提供的 HttpError）；参数 `(message, status?, detail | options?)`。
  */
 export interface FilesErrorInstance {
   message: string
@@ -50,7 +50,7 @@ export interface FilesErrorInstance {
   detail?: string
 }
 export interface FilesErrorClass {
-  new (message: string, status?: number, detail?: string): FilesErrorInstance
+  new (message: string, status?: number, args?: string | { detail?: string }): FilesErrorInstance
 }
 
 export interface FilesDeps {
@@ -186,7 +186,7 @@ export const createFilesService = ({
     const result = s3ConfigSchema.safeParse(file)
     if (!result.success) {
       // 复用 OSS_REGION_REQUIRED 作为 S3 配置不合法的兜底文案，detail 透传 zod 错误详情
-      throw new ErrorClass(t('OSS_REGION_REQUIRED'), 400, result.error.message)
+      throw new ErrorClass(t('OSS_REGION_REQUIRED'), 400, { detail: result.error.message })
     }
     const s3Config = result.data
     if (!s3Config.ossRegion) {
@@ -245,11 +245,9 @@ export const createFilesService = ({
         if (error instanceof ValidationError && error.reason === 'size') {
           throw new ErrorClass(t('FILE_SIZE_INVALID'), 413)
         }
-        throw new ErrorClass(
-          t('FILE_UPLOAD_FAILED'),
-          400,
-          error instanceof Error ? error.message : String(error),
-        )
+        throw new ErrorClass(t('FILE_UPLOAD_FAILED'), 400, {
+          detail: error instanceof Error ? error.message : String(error),
+        })
       }
     },
 

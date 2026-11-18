@@ -9,6 +9,7 @@ import { HttpError } from '@pika/elysia-plugins'
 import { isPhone } from '@pika/shared'
 import { hashPassword } from '@/common/utils/crypto'
 import { emailSchema, passwordSchema } from '@/system/utils/validation'
+import { MultiFactorService } from '@/system/services/multi-factor'
 
 // 与注册路径及 `user.name` 的 varchar(50) 容量保持一致，
 // 否则系统创建的短用户名/长用户名账号无法通过管理接口更新其他字段
@@ -24,6 +25,7 @@ const userItemSchema = z.object({
   phoneNumber: z.string().optional(),
   phoneNumberVerified: z.boolean(),
   picture: z.string().optional(),
+  multiFactorEnabled: z.boolean(),
   loginAt: zodDayjs().optional(),
   createAt: zodDayjs(),
 })
@@ -62,6 +64,8 @@ export abstract class AdminUserService {
 
   static RemoveRespSchema = z.object({ success: z.boolean() })
 
+  static RemoveMultiFactorRespSchema = z.object({ success: z.boolean() })
+
   private static getOrThrow = async (id: string) => {
     const user = await UserRepository.findById(id)
     if (!user) {
@@ -79,6 +83,7 @@ export abstract class AdminUserService {
       phoneNumber: row.phoneNumber ?? undefined,
       phoneNumberVerified: row.phoneNumberVerified,
       picture: row.picture ?? undefined,
+      multiFactorEnabled: row.multiFactorEnabled,
       loginAt: row.loginAt ?? undefined,
       createAt: row.createAt,
     }
@@ -138,6 +143,16 @@ export abstract class AdminUserService {
     return { success: true }
   }
 
+  /** 管理员直接移除用户的多因素验证绑定，无需用户验证码 */
+  static removeMultiFactor = async (
+    id: string,
+  ): Promise<z.infer<typeof AdminUserService.RemoveMultiFactorRespSchema>> => {
+    await AdminUserService.getOrThrow(id)
+    await MultiFactorService.clear(id)
+    await cache.del(id)
+    return { success: true }
+  }
+
   static remove = async (
     id: string,
     currentUserId: string,
@@ -146,6 +161,8 @@ export abstract class AdminUserService {
       throw new HttpError(t('SYSTEM.CANNOT_REMOVE_SELF'), 400)
     }
     await AdminUserService.getOrThrow(id)
+    // 先清理多因素验证关联数据，避免留下孤立记录
+    await MultiFactorService.clear(id)
     await UserRepository.removeById(id)
     await UserPreferenceRepository.removeByUserId(id)
     await cache.del(id)

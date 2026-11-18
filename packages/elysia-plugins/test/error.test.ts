@@ -25,6 +25,15 @@ const buildApp = (onUnknownError?: (error: Error, errorId: string) => void) =>
     .get('/http-error', () => {
       throw new HttpError(i18n.t('COMMON.NOT_FOUND_USER'), 404)
     })
+    .get('/http-error-data', () => {
+      throw new HttpError(i18n.t('COMMON.NOT_FOUND_USER'), 400, {
+        detail: 'userId',
+        data: { mfaTypes: ['totp'] },
+      })
+    })
+    .get('/http-error-string-detail', () => {
+      throw new HttpError(i18n.t('COMMON.NOT_FOUND_USER'), 400, 'legacy detail')
+    })
     .get('/status', () => {
       throw status(401, 'unauthorized by status')
     })
@@ -38,6 +47,22 @@ describe('errorPlugin', () => {
     expect(body.status).toBe(404)
     expect(body.code).toBe('COMMON.NOT_FOUND_USER')
     expect(body.message).toBe('用户不存在')
+  })
+
+  test('HttpError 的 detail 与 data 原样透出', async () => {
+    const res = await buildApp().handle(new Request('http://localhost/http-error-data'))
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { detail?: string; data?: { mfaTypes?: string[] } }
+    expect(body.detail).toBe('userId')
+    expect(body.data).toEqual({ mfaTypes: ['totp'] })
+  })
+
+  test('HttpError 第三参数传字符串时兼容为 detail', async () => {
+    const res = await buildApp().handle(new Request('http://localhost/http-error-string-detail'))
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { detail?: string; data?: unknown }
+    expect(body.detail).toBe('legacy detail')
+    expect(body.data).toBeUndefined()
   })
 
   test('throw status(401) 保留状态码，不落入未知错误分支', async () => {

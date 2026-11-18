@@ -184,7 +184,8 @@ describe('登录与 Token', () => {
   })
 
   test('连续失败达到上限后返回 429', async () => {
-    for (let i = 0; i < 5; i++) {
+    // 故意多打几次：容忍限流阈值后续调整为 11 / 15，只要最终能触发即可
+    for (let i = 0; i < 15; i++) {
       await api.system.oauth.token.post({
         grant_type: 'phone_code',
         phone: limitedPhone,

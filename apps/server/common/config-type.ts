@@ -69,6 +69,13 @@ declare module 'bun' {
     JWT_REFRESH_EXPIRES?: string
 
     /**
+     * 多因素验证密钥，用于加密用户的 TOTP 密钥
+     * 未配置时回退到 JWT_SECRET
+     * @example openssl rand -hex 32
+     */
+    MULTI_FACTOR_SECRET?: string
+
+    /**
      * 缓存连接串
      * - redis:// / rediss:// / valkey:// / valkeys:// 等连接串使用 Redis（valkey 与 redis 互通）
      * - memory / memory:// 使用内存缓存
@@ -205,6 +212,14 @@ interface ConfigBase {
    * @example ~/.pika/data/.file
    */
   filePath: string
+
+  multiFactor: {
+    /**
+     * 多因素验证密钥，用于加密用户的 TOTP 密钥
+     * @default env.MULTI_FACTOR_SECRET || env.JWT_SECRET
+     */
+    secret: string
+  }
 
   jwt: {
     /**

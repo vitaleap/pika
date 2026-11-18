@@ -17,6 +17,10 @@
 - 使用 `HttpError` 类（来自 `@pika/elysia-plugins`）抛出业务异常。
 - 用户可见的错误文案通过 `t` 生成延迟翻译标记。`t` 从全局插件导入 `import { t } from '@/common/plugins/i18n'`，使用 `t('MODULE.KEY')` 形式调用。
 - 自定义 Zod 校验文案也必须使用 `t`，例如 `.min(6, t('SYSTEM.PASSWORD_MIN_LENGTH', { min: 6 }))`。
-- 构造函数参数：`new HttpError(message: string, status?: number, detail?: string)`，status 默认 500。
-- 示例：`throw new HttpError(t('USER_NOT_FOUND'), 404)`。
+- 构造函数参数：`new HttpError(message: string, status?: number, args?: string | { detail?: string; data?: any })`，status 默认 500。
+  - `args` 传字符串等价于 `{ detail: 字符串 }`（兼容旧写法）
+  - `detail` 不会被自动翻译，且不应包含敏感数据
+  - `data` 会原样透出到响应体的 `data` 字段，供客户端按业务自定义处理
+- 示例：`throw new HttpError(t('SYSTEM.USER_NOT_FOUND'), 404)`。
+- 示例：`throw new HttpError(t('COMMON.FILE_UPLOAD_FAILED'), 400, { detail: err.message })`。
 - 完整国际化规范查看 `.agents/docs/server/i18n.md`。

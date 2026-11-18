@@ -1,28 +1,46 @@
 import { Elysia, ElysiaError, NotFound, StatusMap, StatusMapBack, ValidationError } from 'elysia'
 import type { TranslateMessageFn } from './i18n'
 
+/** 第三参数的对象形式 */
+export type HttpErrorOptions = {
+  /** 不会被自动翻译，且不应包含敏感数据 */
+  detail?: string
+  /** 原样透出到响应体的 `data` 字段，供客户端按业务自定义处理 */
+  data?: any
+}
+
 /**
  * 业务异常基类。
  *
  * - `message` 可为 i18n token（`i18n:{...}`），客户端可能直接展示给用户
  * - `detail` 不会被自动翻译，且不应包含敏感数据
+ * - `data` 会原样透出到响应体的 `data` 字段，供客户端按业务自定义处理
+ *
+ * 第三参数兼容字符串写法（等价于 `{ detail }`），便于旧代码平滑迁移。
  *
  * @example
  * ```ts
  * throw new HttpError(t('USER_NOT_FOUND'), 404)
  * throw new HttpError(t('FILE_UPLOAD_FAILED'), 400, err.message)
+ * throw new HttpError(t('MULTI_FACTOR_REQUIRED'), 400, { data: { mfaTypes: ['totp'] } })
  * ```
  */
 export class HttpError extends Error {
   override name: string
   status: number
   detail?: string
+  data?: any
 
-  constructor(message: string, status?: number, detail?: string) {
+  constructor(message: string, status?: number, args?: string | HttpErrorOptions) {
     super(message)
     this.name = 'HttpError'
     this.status = status || 500
-    this.detail = detail
+    if (typeof args === 'string') {
+      this.detail = args
+    } else {
+      this.detail = args?.detail
+      this.data = args?.data
+    }
   }
 }
 
@@ -95,6 +113,8 @@ export const errorPlugin = (opts: ErrorPluginOpts) => {
           code: translated?.key,
           message: translated?.message ?? error.message,
           detail: error.detail,
+          // 自定义数据供客户端做业务处理
+          data: error.data,
         })
       }
 
