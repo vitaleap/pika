@@ -1,9 +1,6 @@
-import dayjs from 'dayjs'
-import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { cache } from '@/common/cache'
 import { config } from '@/common/config'
-import { useDb } from '@/common/db'
 import { t } from '@/common/plugins/i18n'
 import { decryptText, encryptText, sha256 } from '@/common/utils/crypto'
 import {
@@ -15,11 +12,9 @@ import {
 } from '@/common/utils/totp'
 import { UserRepository } from '@/system/repositories/user'
 import { UserMultiFactorRepository } from '@/system/repositories/user-multi-factor'
-import { user } from '@/system/schemas/user'
 import { loginFailReasons, type LoginFailReason } from '@/system/schemas/user-login-log'
 import {
   multiFactorTypes,
-  userMultiFactor,
   type MultiFactorType,
   type RecoveryCodeItem,
 } from '@/system/schemas/user-multi-factor'
@@ -152,52 +147,13 @@ export abstract class MultiFactorService {
   /**
    * 消费一个未使用的恢复码：输入必须是生成时展示的完整列表（按空格、换行拆分），
    * 数量与顺序都要一致，已使用的由服务端自行跳过。
-   * 用事务 + 行锁读取并写回，避免并发校验时同一个恢复码被使用两次。
    */
   private static _consumeRecoveryCode = async (userId: string, input: string): Promise<boolean> => {
     const inputHashes = input.trim().split(/\s+/).map(hashRecoveryCode)
-    // 第一步：必须输入完整的 10 个恢复码
     if (inputHashes.length !== RECOVERY_CODE_COUNT) {
       return false
     }
-    return useDb().transaction(async (tx) => {
-      const [row] = await tx
-        .select()
-        .from(userMultiFactor)
-        .where(and(eq(userMultiFactor.userId, userId), eq(userMultiFactor.type, 'recovery_code')))
-        .for('update')
-      const codes = row?.codes ?? []
-      // 第二步：必须还有未使用的恢复码
-      const index = codes.findIndex((item) => !item.usedAt)
-      if (!row || index === -1) {
-        return false
-      }
-      // 第三步：数量与顺序都必须与生成时一致
-      const sameCodes =
-        inputHashes.length === codes.length &&
-        inputHashes.every((hash, i) => hash === codes[i]!.hash)
-      if (!sameCodes) {
-        return false
-      }
-      const usedAt = dayjs().toISOString()
-      const next = codes.map((item, i) => (i === index ? { ...item, usedAt } : item))
-      if (next.some((item) => !item.usedAt)) {
-        await tx.update(userMultiFactor).set({ codes: next }).where(eq(userMultiFactor.id, row.id))
-        return true
-      }
-      // 最后一个恢复码被消费后该方式即视为解绑：删除凭证行，避免留下「已绑定但无法验证」的死锁
-      await tx.delete(userMultiFactor).where(eq(userMultiFactor.id, row.id))
-      const [remaining] = await tx
-        .select({ id: userMultiFactor.id })
-        .from(userMultiFactor)
-        .where(eq(userMultiFactor.userId, userId))
-        .limit(1)
-      // 已无任何验证方式时同步关闭开关，避免残留不一致的启用状态
-      if (!remaining) {
-        await tx.update(user).set({ loginMultiFactorEnabled: false }).where(eq(user.id, userId))
-      }
-      return true
-    })
+    return UserMultiFactorRepository.consumeRecoveryCode(userId, inputHashes)
   }
 
   /** 校验动态码或恢复码，返回 `'ok'` 表示通过；恢复码校验成功即被消费 */

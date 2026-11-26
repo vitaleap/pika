@@ -1,6 +1,6 @@
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import dayjs from 'dayjs'
-import { useDb } from '@/common/db'
+import { useDb, withTransaction } from '@/common/db'
 import {
   userMultiFactor,
   userMultiFactorLog,
@@ -41,6 +41,53 @@ export abstract class UserMultiFactorRepository {
   }
 
   /**
+   * 校验并消费一个恢复码：输入必须是生成时展示的完整列表（按原顺序 hash），
+   * 数量与顺序都要一致，已使用的由服务端自行跳过。
+   */
+  static async consumeRecoveryCode(userId: string, inputHashes: string[]): Promise<boolean> {
+    return withTransaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(userMultiFactor)
+        .where(and(eq(userMultiFactor.userId, userId), eq(userMultiFactor.type, 'recovery_code')))
+        .for('update')
+      if (!row) {
+        return false
+      }
+      const codes = row.codes ?? []
+      const index = codes.findIndex((item) => !item.usedAt)
+      // 没有未使用的恢复码
+      if (index === -1) {
+        return false
+      }
+      // 数量与顺序都必须与生成时一致
+      if (
+        inputHashes.length !== codes.length ||
+        !inputHashes.every((hash, i) => hash === codes[i]!.hash)
+      ) {
+        return false
+      }
+      const usedAt = dayjs().toISOString()
+      const next = codes.map((item, i) => (i === index ? { ...item, usedAt } : item))
+      if (next.some((item) => !item.usedAt)) {
+        await tx.update(userMultiFactor).set({ codes: next }).where(eq(userMultiFactor.id, row.id))
+        return true
+      }
+      // 最后一个恢复码被消费后该方式即视为解绑：删除凭证行，避免留下「已绑定但无法验证」的死锁
+      await tx.delete(userMultiFactor).where(eq(userMultiFactor.id, row.id))
+      const [remaining] = await tx
+        .select({ id: userMultiFactor.id })
+        .from(userMultiFactor)
+        .where(eq(userMultiFactor.userId, userId))
+        .limit(1)
+      if (!remaining) {
+        await tx.update(user).set({ loginMultiFactorEnabled: false }).where(eq(user.id, userId))
+      }
+      return true
+    })
+  }
+
+  /**
    * 记录 TOTP 已使用的时间步长，返回 false 表示该步长的验证码已被使用过（重放）。
    *
    * 用带条件的 UPDATE 实现「比较并写入」，避免并发校验时同一验证码被使用两次；
@@ -64,7 +111,7 @@ export abstract class UserMultiFactorRepository {
     const where = type
       ? and(eq(userMultiFactor.userId, userId), eq(userMultiFactor.type, type))
       : eq(userMultiFactor.userId, userId)
-    await useDb().transaction(async (tx) => {
+    await withTransaction(async (tx) => {
       await tx.delete(userMultiFactor).where(where)
       if (!type) {
         await tx.update(user).set({ loginMultiFactorEnabled: false }).where(eq(user.id, userId))

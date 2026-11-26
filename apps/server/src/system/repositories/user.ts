@@ -2,7 +2,7 @@ import { and, desc, eq, ilike, or, sql } from 'drizzle-orm'
 import { user, type User, type UserInsert } from '@/system/schemas/user'
 import { escapeLike } from '@/system/utils/sql'
 import dayjs from 'dayjs'
-import { useDb } from '@/common/db'
+import { useDb, withTransaction } from '@/common/db'
 import { t } from '@/common/plugins/i18n'
 import { userPreference } from '@/system/schemas/user-preference'
 import { userMultiFactor } from '@/system/schemas/user-multi-factor'
@@ -105,7 +105,7 @@ export abstract class UserRepository {
    * @param id 用户id
    */
   static async removeAndClearById(id: string) {
-    await useDb().transaction(async (tx) => {
+    await withTransaction(async (tx) => {
       await tx.delete(user).where(eq(user.id, id))
       await tx.delete(userPreference).where(eq(userPreference.userId, id))
       await tx.delete(userMultiFactor).where(eq(userMultiFactor.userId, id))

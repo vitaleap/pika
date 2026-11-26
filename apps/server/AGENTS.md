@@ -21,7 +21,10 @@ common/             # 基础设施，与业务模块解耦
   cache.ts          # 缓存薄包装
   config.ts         # 配置（config-type.ts 提供类型）
   db/               # 数据库连接和基础设施
-    index.ts        # 数据库连接 (useDb) 和迁移 (runMigrate)
+    index.ts        # 统一出口（useDb / withTransaction / closeDb / runMigrate）
+    client.ts       # 连接创建、关闭与迁移
+    tx.ts           # 事务上下文（AsyncLocalStorage）与重试
+    type.ts         # 对外统一类型
     base/           # 公共列定义 (baseColumns、dayjsType)
     plugins/        # 数据库驱动插件 (pglite 等)
   email.ts          # 邮件

@@ -7,6 +7,7 @@ import { ConfigService } from '@/system/services/config'
 import { t } from '@/common/plugins/i18n'
 import type { JwtPayload } from '@/common/plugins/auth'
 import { cache } from '@/common/cache'
+import { withTransaction } from '@/common/db'
 import { CaptchaService } from './captcha'
 import { EmailService } from './email'
 import { SmsService } from './sms'
@@ -82,14 +83,17 @@ const finishLogin = async (
   user: { id: string; name: string; email?: string | null },
   log: { username: string; ip: string; userAgent: string; loginType: LoginType },
 ): Promise<JwtPayload> => {
-  await UserRepository.updateById(user.id, { loginAt: dayjs() })
-  await UserLoginLogRepository.save({
-    username: log.username,
-    userId: user.id,
-    ip: log.ip,
-    userAgent: log.userAgent,
-    loginType: log.loginType,
-    success: true,
+  // 事务内的 repository 会自动加入同一事务，无需传 tx
+  await withTransaction(async () => {
+    await UserRepository.updateById(user.id, { loginAt: dayjs() })
+    await UserLoginLogRepository.save({
+      username: log.username,
+      userId: user.id,
+      ip: log.ip,
+      userAgent: log.userAgent,
+      loginType: log.loginType,
+      success: true,
+    })
   })
   return toJwtPayload(user)
 }
